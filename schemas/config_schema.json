@@ -1,0 +1,18 @@
+{
+  "app_name": "ObsidianFit",
+  "vault_path": "/Documents/ObsidianFit",
+  "units": {
+    "weight": "kg",
+    "distance": "km"
+  },
+  "user_profile": {
+    "functional_threshold_hr": 168,
+    "max_hr": 192,
+    "rest_hr": 58
+  },
+  "rest_timer_defaults_sec": {
+    "normal_set": 90,
+    "heavy_set": 180,
+    "warmup_set": 45
+  }
+}

@@ -1,0 +1,14 @@
+# Lint rules for ObsidianFit.
+# Project: ~/Developer/Claude-ObsidianFit/
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    # Drift / build_runner output
+    - "**/*.g.dart"
+
+linter:
+  rules:
+    # The master plan references PascalCase files (e.g. lib/services/AppDatabase.dart),
+    # so the snake_case filename lint is disabled for consistency across phases.
+    file_names: false
