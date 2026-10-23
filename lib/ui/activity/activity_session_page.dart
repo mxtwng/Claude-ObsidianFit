@@ -25,6 +25,7 @@ import '../../models/Models.dart';
 import '../../services/activity_metrics.dart' as metrics;
 import '../../services/gpx_service.dart';
 import '../../services/location_ble_service.dart';
+import '../../services/screen_awake.dart';
 import '../../services/vault_reindexer_service.dart';
 import '../app_services.dart';
 import '../common/prompt_dialog.dart';
@@ -98,6 +99,7 @@ class _ActivitySessionPageState extends State<ActivitySessionPage> {
 
   @override
   void dispose() {
+    unawaited(ScreenAwake.disable());
     _recorder.dispose();
     _hr.dispose();
     _notes.dispose();
@@ -139,6 +141,7 @@ class _ActivitySessionPageState extends State<ActivitySessionPage> {
       return;
     }
     HapticFeedback.mediumImpact();
+    unawaited(ScreenAwake.enable());
     if (!_locationReady) {
       setState(() {
         _locationError = null;
@@ -167,6 +170,7 @@ class _ActivitySessionPageState extends State<ActivitySessionPage> {
     if (!go || !mounted) return;
     final result = await _recorder.stop();
     if (!mounted || result == null) return;
+    unawaited(ScreenAwake.disable());
     HapticFeedback.mediumImpact();
     setState(() => _result = result);
   }
@@ -180,6 +184,7 @@ class _ActivitySessionPageState extends State<ActivitySessionPage> {
     );
     if (!go || !mounted) return;
     await _recorder.discard();
+    unawaited(ScreenAwake.disable());
     if (mounted) Navigator.of(context).pop(false);
   }
 

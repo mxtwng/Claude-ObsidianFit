@@ -21,6 +21,7 @@
         "path_provider",
         "permission_handler",
         "uuid",
+        "wakelock_plus",
         "xml",
         "yaml"
       ],
@@ -120,6 +121,20 @@
         "stream_channel",
         "test_api",
         "vector_math"
+      ]
+    },
+    {
+      "name": "wakelock_plus",
+      "version": "1.8.0",
+      "dependencies": [
+        "dbus",
+        "flutter",
+        "flutter_web_plugins",
+        "meta",
+        "package_info_plus",
+        "wakelock_plus_platform_interface",
+        "web",
+        "win32"
       ]
     },
     {
@@ -628,7 +643,7 @@
     },
     {
       "name": "vector_math",
-      "version": "2.4.3",
+      "version": "2.4.0",
       "dependencies": []
     },
     {
@@ -675,6 +690,62 @@
         "stream_channel",
         "string_scanner",
         "term_glyph"
+      ]
+    },
+    {
+      "name": "web",
+      "version": "1.1.2",
+      "dependencies": []
+    },
+    {
+      "name": "package_info_plus",
+      "version": "10.2.2",
+      "dependencies": [
+        "clock",
+        "ffi",
+        "flutter",
+        "flutter_web_plugins",
+        "http",
+        "meta",
+        "package_info_plus_platform_interface",
+        "path",
+        "web",
+        "win32"
+      ]
+    },
+    {
+      "name": "dbus",
+      "version": "0.7.15",
+      "dependencies": [
+        "args",
+        "ffi",
+        "meta",
+        "xml"
+      ]
+    },
+    {
+      "name": "win32",
+      "version": "6.4.0",
+      "dependencies": [
+        "ffi",
+        "ffi_leak_tracker",
+        "meta"
+      ]
+    },
+    {
+      "name": "wakelock_plus_platform_interface",
+      "version": "1.7.0",
+      "dependencies": [
+        "flutter",
+        "meta",
+        "plugin_platform_interface"
+      ]
+    },
+    {
+      "name": "flutter_web_plugins",
+      "version": "0.0.0",
+      "dependencies": [
+        "flutter"
       ]
     },
     {
@@ -996,11 +1067,6 @@
       ]
     },
     {
-      "name": "web",
-      "version": "1.1.2",
-      "dependencies": []
-    },
-    {
       "name": "sky_engine",
       "version": "0.0.0",
       "dependencies": []
@@ -1116,17 +1182,12 @@
       ]
     },
     {
-      "name": "image",
-      "version": "4.12.0",
+      "name": "package_info_plus_platform_interface",
+      "version": "4.1.0",
       "dependencies": [
-        "archive"
-      ]
-    },
-    {
-      "name": "flutter_web_plugins",
-      "version": "0.0.0",
-      "dependencies": [
-        "flutter"
+        "flutter",
+        "meta",
+        "plugin_platform_interface"
       ]
     },
     {
@@ -1140,10 +1201,24 @@
       ]
     },
     {
+      "name": "ffi_leak_tracker",
+      "version": "0.1.2",
+      "dependencies": [
+        "ffi"
+      ]
+    },
+    {
       "name": "plugin_platform_interface",
       "version": "2.1.8",
       "dependencies": [
         "meta"
+      ]
+    },
+    {
+      "name": "image",
+      "version": "4.12.0",
+      "dependencies": [
+        "archive"
       ]
     },
     {
@@ -1152,16 +1227,6 @@
       "dependencies": [
         "meta",
         "path"
-      ]
-    },
-    {
-      "name": "dbus",
-      "version": "0.7.15",
-      "dependencies": [
-        "args",
-        "ffi",
-        "meta",
-        "xml"
       ]
     },
     {
@@ -1176,22 +1241,6 @@
       "version": "0.8.3",
       "dependencies": [
         "dbus"
-      ]
-    },
-    {
-      "name": "package_info_plus",
-      "version": "10.2.2",
-      "dependencies": [
-        "clock",
-        "ffi",
-        "flutter",
-        "flutter_web_plugins",
-        "http",
-        "meta",
-        "package_info_plus_platform_interface",
-        "path",
-        "web",
-        "win32"
       ]
     },
     {
@@ -1259,24 +1308,6 @@
       ]
     },
     {
-      "name": "win32",
-      "version": "6.4.0",
-      "dependencies": [
-        "ffi",
-        "ffi_leak_tracker",
-        "meta"
-      ]
-    },
-    {
-      "name": "package_info_plus_platform_interface",
-      "version": "4.1.0",
-      "dependencies": [
-        "flutter",
-        "meta",
-        "plugin_platform_interface"
-      ]
-    },
-    {
       "name": "hooks",
       "version": "2.2.0",
       "dependencies": [
@@ -1311,13 +1342,6 @@
         "ffi",
         "meta",
         "path"
-      ]
-    },
-    {
-      "name": "ffi_leak_tracker",
-      "version": "0.1.2",
-      "dependencies": [
-        "ffi"
       ]
     },
     {

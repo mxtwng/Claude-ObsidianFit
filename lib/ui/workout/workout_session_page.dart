@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../models/Models.dart';
+import '../../services/screen_awake.dart';
 import '../../services/vault_reindexer_service.dart';
 import '../app_services.dart';
 import '../common/prompt_dialog.dart';
@@ -82,10 +83,12 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
   void initState() {
     super.initState();
     _draft = WorkoutDraft(split: widget.split);
+    unawaited(ScreenAwake.enable());
   }
 
   @override
   void dispose() {
+    unawaited(ScreenAwake.disable());
     _rest.dispose();
     _draft.dispose();
     super.dispose();

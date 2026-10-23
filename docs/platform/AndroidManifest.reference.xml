@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  REFERENCE MANIFEST for ObsidianFit (Phase 3/4 features).
+
+  Apply with:
+    flutter create --platforms=android,ios --project-name obsidian_fit .
+    cp docs/platform/AndroidManifest.reference.xml \
+       android/app/src/main/AndroidManifest.xml
+
+  Then check `git diff` in case your Flutter version's template differs.
+  See docs/phase3_platform_setup.md for why each entry exists.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ===== Location (GPS recording) ===== -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Optional in practice: a location foreground service started while the
+         app is visible keeps receiving fixes without it. Remove this line if
+         you ever publish on Google Play (it triggers extra review). -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+    <!-- ===== Foreground service (Android 14+ needs one permission per type) ===== -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!-- BackgroundKeepAlive declares AndroidForegroundType.connectedDevice, so
+         this is REQUIRED or startForeground() throws SecurityException. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <!-- Android 13+: the foreground-service notification is hidden without it. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- ===== Bluetooth LE (heart-rate strap) ===== -->
+    <!-- Legacy permissions apply to Android 11 and lower only. -->
+    <uses-permission android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <!-- Android 12+. neverForLocation: scan results are not used to derive
+         location (GPS is requested separately above). -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-feature android:name="android.hardware.bluetooth_le"
+        android:required="false" />
+
+    <!-- ===== Storage (vault in /storage/emulated/0/Documents/ObsidianFit) ===== -->
+    <!-- Android 11+: plain dart:io writes to shared storage need "All files
+         access". Google Play restricts this permission; fine for sideload/F-Droid. -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+    <!-- ===== Network ===== -->
+    <!-- Only needed for an online MapLibre style (kOpenFreeMapStyle). The default
+         offline dark style does not use the network. Flutter's template already
+         adds INTERNET to debug/profile builds only. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:label="ObsidianFit"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher"
+        android:requestLegacyExternalStorage="true">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <meta-data
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- flutter_background_service: the service's foregroundServiceType MUST
+             match AndroidConfiguration.foregroundServiceTypes in
+             lib/services/location_ble_service.dart (location + connectedDevice).
+             tools:replace overrides any type the plugin's own manifest declares. -->
+        <service
+            android:name="id.flutter.flutter_background_service.BackgroundService"
+            android:foregroundServiceType="location|connectedDevice"
+            android:exported="true"
+            tools:replace="android:exported,android:foregroundServiceType" />
+
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+    </application>
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT" />
+            <data android:mimeType="text/plain" />
+        </intent>
+    </queries>
+</manifest>

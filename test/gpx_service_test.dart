@@ -45,7 +45,7 @@ void main() {
       expect(root.name.local, 'gpx');
       expect(root.getAttribute('version'), '1.1');
       expect(root.getAttribute('creator'), 'ObsidianFit');
-      expect(root.namespaceUriUri, _gpxNs);
+      expect(root.namespaceUri, _gpxNs);
       expect(root.getAttribute('xmlns:gpxtpx'), _tpxNs);
     });
 
@@ -120,7 +120,7 @@ void main() {
       expect(hr.innerText, '151');
       expect(hr.name.prefix, 'gpxtpx');
       expect(hr.parentElement!.name.local, 'TrackPointExtension');
-      expect(hr.parentElement!.namespaceUriUri, _tpxNs);
+      expect(hr.parentElement!.namespaceUri, _tpxNs);
       expect(hr.parentElement!.parentElement!.name.local, 'extensions');
     });
 
