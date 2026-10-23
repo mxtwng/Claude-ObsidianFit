@@ -6,6 +6,7 @@ analyzer:
   exclude:
     # Drift / build_runner output
     - "**/*.g.dart"
+    - build/**
 
 linter:
   rules:

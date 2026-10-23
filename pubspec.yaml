@@ -22,7 +22,6 @@ dependencies:
   # (lib/services/FrontMatterCodec.dart). `front_matter` is declared as requested;
   # version is unpinned because it could not be verified here. Run
   # `flutter pub upgrade front_matter` and pin the resolved version.
-  front_matter: any
   yaml: ^3.1.3
 
   # Formatting and ID generation
