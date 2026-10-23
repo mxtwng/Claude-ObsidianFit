@@ -1,6 +1,7 @@
-/// Bottom-navigation shell: Calendar and History tabs, a global "Start
-/// workout" button on History, and a re-index whenever the app resumes
-/// (directory watching can miss changes made by Syncthing/rsync).
+/// Bottom-navigation shell: Calendar and History tabs, a global "Start"
+/// button on History (gym workout or outdoor GPS activity), and a re-index
+/// whenever the app resumes (directory watching can miss changes made by
+/// Syncthing/rsync).
 library;
 
 import 'dart:async';
@@ -10,8 +11,8 @@ import 'package:flutter/material.dart';
 import '../../services/vault_reindexer_service.dart';
 import '../app_services.dart';
 import '../calendar/calendar_page.dart';
+import '../common/start_session_sheet.dart';
 import '../history/history_page.dart';
-import '../workout/workout_session_page.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -56,9 +57,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       ),
       floatingActionButton: _index == 1
           ? FloatingActionButton.extended(
-              onPressed: () => startWorkoutSession(context),
+              onPressed: () => showStartSessionSheet(context),
               icon: const Icon(Icons.play_arrow),
-              label: const Text('Start workout'),
+              label: const Text('Start'),
             )
           : null,
       bottomNavigationBar: NavigationBar(

@@ -242,7 +242,11 @@ class HeartRateMonitor extends ChangeNotifier {
           : HrConnectionState.reconnecting,
     );
     try {
+      // flutter_blue_plus 2.x requires an explicit license. `free` covers
+      // individuals, non-profits and small orgs; ObsidianFit is free and
+      // open source. Revisit if the project is ever used commercially.
       await device.connect(
+        license: License.nonprofit,
         timeout: const Duration(seconds: 15),
         autoConnect: false,
       );

@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 
 import '../../models/Models.dart';
 import '../../services/FilePersistenceService.dart';
+import '../activity/map_view.dart';
 import '../app_services.dart';
 import '../theme/app_theme.dart';
 import 'session_entry.dart';
@@ -307,19 +308,7 @@ class _ActivityView extends StatelessWidget {
           ),
           if (a.gpxFileName != null) ...[
             const SizedBox(height: 12),
-            Row(
-              children: [
-                const Icon(Icons.route, size: 16, color: AppColors.textDim),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    a.gpxFileName!,
-                    style: const TextStyle(color: AppColors.textDim),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
+            ActivityRouteMap(gpxFileName: a.gpxFileName!),
           ],
           if (a.bodyText.isNotEmpty) ...[
             const SizedBox(height: 12),

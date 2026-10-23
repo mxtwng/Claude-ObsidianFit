@@ -6,11 +6,13 @@ library;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../activity/activity_session_page.dart';
 import '../common/session_entries_builder.dart';
 import '../common/session_entry.dart';
 import '../common/session_preview_sheet.dart';
 import '../common/session_tile.dart';
 import '../theme/app_theme.dart';
+import '../workout/workout_session_page.dart';
 
 enum _HistoryFilter { all, workouts, activities }
 
@@ -139,10 +141,30 @@ class _EmptyHistory extends StatelessWidget {
             Text(
               filtered
                   ? 'No sessions match this filter.'
-                  : 'No sessions yet.\nTap "Start workout" to log your first one.',
+                  : 'No sessions yet.\nStart a gym workout or record an outdoor activity.',
               textAlign: TextAlign.center,
               style: const TextStyle(color: AppColors.textDim, height: 1.4),
             ),
+            if (!filtered) ...[
+              const SizedBox(height: 20),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  FilledButton.icon(
+                    onPressed: () => startWorkoutSession(context),
+                    icon: const Icon(Icons.fitness_center),
+                    label: const Text('Workout'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => startOutdoorActivity(context),
+                    icon: const Icon(Icons.directions_run),
+                    label: const Text('Activity'),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
