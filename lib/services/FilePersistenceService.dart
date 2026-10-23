@@ -9,8 +9,9 @@
 ///  * set lines are renumbered 1..n on render;
 ///  * numbers are re-emitted via `formatDecimal` (`7.50` -> `7.5`);
 ///  * exercise notes keep their text but not their position relative to sets;
-///  * [PlanProgram] has no body-extras field yet, so sections other than
-///    "Weekly Rotation" and "Daily Habit Checklist" are not preserved.
+///  * [PlanProgram] keeps everything outside the H1, the weekly rotation and
+///    the habit checklist in `extraBody`, rendered after those sections (its
+///    original position in the note is not kept).
 library;
 
 import 'dart:io';
@@ -38,6 +39,28 @@ class FilePersistenceService {
 
   final Directory vaultDir;
 
+  /// Vault sub-folders, relative to [vaultDir].
+  static const String workoutsFolder = 'Workouts';
+  static const String activitiesFolder = 'Activities';
+  static const String plansFolder = 'Plans';
+  static const List<String> dataFolders = [
+    workoutsFolder,
+    activitiesFolder,
+    plansFolder,
+  ];
+
+  /// Creates the vault root and the three data folders if missing.
+  Future<void> ensureStructure() async {
+    for (final f in dataFolders) {
+      await Directory(p.join(vaultDir.path, f)).create(recursive: true);
+    }
+  }
+
+  /// Vault-relative path with forward slashes (stable across devices),
+  /// e.g. `Workouts/2026-10-22_1800_Push_Day_A.md`.
+  String relativePath(File file) =>
+      p.split(p.relative(file.path, from: vaultDir.path)).join('/');
+
   // ===========================================================================
   // Parsing
   // ===========================================================================
@@ -62,7 +85,7 @@ class FilePersistenceService {
       if (name == null) return;
       exercises.add(
         ExerciseEntry(
-          name: name!,
+          name: name,
           sets: List.unmodifiable(sets),
           notes: _trimBlankLines(notes),
         ),
@@ -140,6 +163,7 @@ class FilePersistenceService {
     final rotation = <RotationDay>[];
     final habits = <HabitItem>[];
     var section = _PlanSection.none;
+    final extra = <String>[];
 
     for (final line in lines) {
       final h2 = _h2.firstMatch(line);
@@ -150,6 +174,7 @@ class FilePersistenceService {
             : t.contains('habit')
                 ? _PlanSection.habits
                 : _PlanSection.other;
+        if (section == _PlanSection.other) extra.add(line);
         continue;
       }
       if (!seenH1 && section == _PlanSection.none) {
@@ -163,13 +188,21 @@ class FilePersistenceService {
       switch (section) {
         case _PlanSection.rotation:
           final r = RotationDay.tryParseLine(line);
-          if (r != null) rotation.add(r);
+          if (r != null) {
+            rotation.add(r);
+          } else if (line.trim().isNotEmpty) {
+            extra.add(line);
+          }
         case _PlanSection.habits:
           final h = HabitItem.tryParseLine(line);
-          if (h != null) habits.add(h);
+          if (h != null) {
+            habits.add(h);
+          } else if (line.trim().isNotEmpty) {
+            extra.add(line);
+          }
         case _PlanSection.none:
         case _PlanSection.other:
-          break;
+          extra.add(line);
       }
     }
 
@@ -178,6 +211,7 @@ class FilePersistenceService {
       title: title,
       weeklyRotation: rotation,
       dailyHabits: habits,
+      extraBody: _trimBlankLines(extra),
     );
   }
 
@@ -250,6 +284,10 @@ class FilePersistenceService {
         b.writeln(h.toMarkdownLine());
       }
     }
+    if (plan.extraBody.isNotEmpty) {
+      if (b.isNotEmpty) b.writeln();
+      b.writeln(plan.extraBody);
+    }
     return FrontMatterCodec.encode(plan.toFrontmatter(), b.toString());
   }
 
@@ -257,24 +295,33 @@ class FilePersistenceService {
   // File IO
   // ===========================================================================
 
-  /// Saves a workout. Pass [fileName] to overwrite an existing note; otherwise
-  /// a unique `yyyy-MM-dd_HHmm_<split>.md` name is generated.
-  Future<File> saveWorkout(WorkoutSession s, {String? fileName}) {
-    final name = fileName ??
-        _uniqueName(_stem(s.date, s.timeStarted, s.split, 'Workout'), 'md');
-    return _writeAtomic(name, renderWorkout(s));
+  /// Saves a workout into `Workouts/`. Pass [relativePath] (as returned by
+  /// [FilePersistenceService.relativePath]) to overwrite an existing note;
+  /// otherwise a unique `yyyy-MM-dd_HHmm_<split>.md` name is generated.
+  Future<File> saveWorkout(WorkoutSession s, {String? relativePath}) {
+    final path = relativePath ??
+        _uniquePath(
+          workoutsFolder,
+          _stem(s.date, s.timeStarted, s.split, 'Workout'),
+        );
+    return _writeAtomic(path, renderWorkout(s));
   }
 
-  Future<File> saveActivity(ActivitySession a, {String? fileName}) {
-    final name = fileName ??
-        _uniqueName(_stem(a.date, a.timeStarted, a.category, 'Activity'), 'md');
-    return _writeAtomic(name, renderActivity(a));
+  /// Saves an activity into `Activities/`.
+  Future<File> saveActivity(ActivitySession a, {String? relativePath}) {
+    final path = relativePath ??
+        _uniquePath(
+          activitiesFolder,
+          _stem(a.date, a.timeStarted, a.category, 'Activity'),
+        );
+    return _writeAtomic(path, renderActivity(a));
   }
 
-  Future<File> savePlan(PlanProgram plan, {String? fileName}) {
-    final name =
-        fileName ?? _uniqueName('Plan_${_slug(plan.programName, 'Plan')}', 'md');
-    return _writeAtomic(name, renderPlan(plan));
+  /// Saves a plan into `Plans/`.
+  Future<File> savePlan(PlanProgram plan, {String? relativePath}) {
+    final path = relativePath ??
+        _uniquePath(plansFolder, 'Plan_${_slug(plan.programName, 'Plan')}');
+    return _writeAtomic(path, renderPlan(plan));
   }
 
   /// Reads and parses one note. See [parseAny] for return types.
@@ -283,15 +330,24 @@ class FilePersistenceService {
 
   /// All `.md` files under the vault, skipping hidden folders such as
   /// `.obsidian` and `.stfolder`. Input for the directory re-indexer.
-  Future<List<File>> listMarkdownFiles() async {
+  ///
+  /// Pass [folders] (vault-relative) to scan only those; missing ones are
+  /// skipped. Defaults to the whole vault.
+  Future<List<File>> listMarkdownFiles({List<String>? folders}) async {
     if (!await vaultDir.exists()) return const [];
+    final roots = folders == null
+        ? [vaultDir]
+        : [for (final f in folders) Directory(p.join(vaultDir.path, f))];
     final out = <File>[];
-    await for (final entity in vaultDir.list(recursive: true)) {
-      if (entity is! File) continue;
-      if (!entity.path.toLowerCase().endsWith('.md')) continue;
-      final rel = p.relative(entity.path, from: vaultDir.path);
-      if (p.split(rel).any((seg) => seg.startsWith('.'))) continue;
-      out.add(entity);
+    for (final root in roots) {
+      if (!await root.exists()) continue;
+      await for (final entity in root.list(recursive: true)) {
+        if (entity is! File) continue;
+        if (!entity.path.toLowerCase().endsWith('.md')) continue;
+        final rel = p.relative(entity.path, from: vaultDir.path);
+        if (p.split(rel).any((seg) => seg.startsWith('.'))) continue;
+        out.add(entity);
+      }
     }
     out.sort((a, b) => a.path.compareTo(b.path));
     return out;
@@ -302,21 +358,22 @@ class FilePersistenceService {
   /// Write to a temp file in the same directory, then rename, so a sync tool
   /// or a crash never sees a half-written note.
   Future<File> _writeAtomic(String fileName, String content) async {
-    await vaultDir.create(recursive: true);
     final target = File(p.join(vaultDir.path, fileName));
+    await target.parent.create(recursive: true);
     final tmp = File('${target.path}.tmp');
     await tmp.writeAsString(content, flush: true);
     return tmp.rename(target.path);
   }
 
-  String _uniqueName(String stem, String ext) {
-    var name = '$stem.$ext';
+  /// `<folder>/<stem>.md`, or `<folder>/<stem>_2.md`, `_3`, ... if taken.
+  String _uniquePath(String folder, String stem) {
+    var path = '$folder/$stem.md';
     var n = 2;
-    while (File(p.join(vaultDir.path, name)).existsSync()) {
-      name = '${stem}_$n.$ext';
+    while (File(p.join(vaultDir.path, path)).existsSync()) {
+      path = '$folder/${stem}_$n.md';
       n++;
     }
-    return name;
+    return path;
   }
 
   static String _stem(

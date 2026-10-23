@@ -70,6 +70,7 @@ class PlanProgram {
     this.title = '',
     this.weeklyRotation = const [],
     this.dailyHabits = const [],
+    this.extraBody = '',
     this.extraFrontmatter = const {},
   });
 
@@ -89,6 +90,11 @@ class PlanProgram {
 
   /// Checklist items under `## Daily Habit Checklist`.
   final List<HabitItem> dailyHabits;
+
+  /// Free-form Markdown found outside the H1, the weekly rotation, and the
+  /// habit checklist (extra `## Sections`, intro text, stray lines). Kept
+  /// verbatim and rendered after the structured sections.
+  final String extraBody;
 
   /// Unknown frontmatter keys, preserved verbatim.
   final Map<String, Object?> extraFrontmatter;
@@ -121,6 +127,7 @@ class PlanProgram {
     String? title,
     List<RotationDay>? weeklyRotation,
     List<HabitItem>? dailyHabits,
+    String? extraBody,
     Map<String, Object?>? extraFrontmatter,
   }) {
     return PlanProgram(
@@ -133,6 +140,7 @@ class PlanProgram {
       title: title ?? this.title,
       weeklyRotation: weeklyRotation ?? this.weeklyRotation,
       dailyHabits: dailyHabits ?? this.dailyHabits,
+      extraBody: extraBody ?? this.extraBody,
       extraFrontmatter: extraFrontmatter ?? this.extraFrontmatter,
     );
   }
@@ -156,6 +164,7 @@ class PlanProgram {
     String title = '',
     List<RotationDay> weeklyRotation = const [],
     List<HabitItem> dailyHabits = const [],
+    String extraBody = '',
   }) {
     return PlanProgram(
       type: coerceString(fm['type']) ?? 'program_plan',
@@ -167,6 +176,7 @@ class PlanProgram {
       title: title,
       weeklyRotation: weeklyRotation,
       dailyHabits: dailyHabits,
+      extraBody: extraBody,
       extraFrontmatter: extractExtras(fm, knownKeys),
     );
   }

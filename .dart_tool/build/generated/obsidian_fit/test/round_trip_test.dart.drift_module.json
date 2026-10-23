@@ -1,0 +1,8 @@
+{
+  "elements": {},
+  "imports": [
+    "package:flutter_test/flutter_test.dart",
+    "package:obsidian_fit/models/Models.dart",
+    "package:obsidian_fit/services/FilePersistenceService.dart"
+  ]
+}

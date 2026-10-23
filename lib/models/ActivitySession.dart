@@ -70,7 +70,8 @@ class ActivitySession {
     'tags',
   };
 
-  static final RegExp _wikilink = RegExp(r'\[\[\s*([^\]|#]+?)\s*(?:[#|][^\]]*)?\]\]');
+  static final RegExp _wikilink =
+      RegExp(r'\[\[\s*([^\]|#]+?)\s*(?:[#|][^\]]*)?\]\]');
 
   /// `"[[Route.gpx]]"` -> `Route.gpx`. Also accepts a bare filename.
   /// Returns null for null/empty input.

@@ -1,0 +1,7 @@
+{
+  "elements": {},
+  "imports": [
+    "package:obsidian_fit/models/ExerciseEntry.dart",
+    "package:obsidian_fit/models/ModelUtils.dart"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "elements": {},
+  "imports": [
+    "package:obsidian_fit/models/ModelUtils.dart"
+  ]
+}

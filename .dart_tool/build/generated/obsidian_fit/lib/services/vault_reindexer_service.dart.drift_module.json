@@ -1,0 +1,9 @@
+{
+  "elements": {},
+  "imports": [
+    "package:drift/drift.dart",
+    "package:obsidian_fit/models/Models.dart",
+    "package:obsidian_fit/services/FilePersistenceService.dart",
+    "package:obsidian_fit/services/app_database.dart"
+  ]
+}

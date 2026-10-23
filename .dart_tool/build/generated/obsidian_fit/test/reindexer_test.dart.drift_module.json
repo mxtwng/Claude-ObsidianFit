@@ -1,0 +1,11 @@
+{
+  "elements": {},
+  "imports": [
+    "package:drift/native.dart",
+    "package:flutter_test/flutter_test.dart",
+    "package:obsidian_fit/models/Models.dart",
+    "package:obsidian_fit/services/FilePersistenceService.dart",
+    "package:obsidian_fit/services/app_database.dart",
+    "package:obsidian_fit/services/vault_reindexer_service.dart"
+  ]
+}
