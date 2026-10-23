@@ -18,23 +18,66 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../models/Models.dart';
 import 'FrontMatterCodec.dart';
+import 'gpx_service.dart';
 
 class FilePersistenceService {
   FilePersistenceService(this.vaultDir);
 
-  /// Opens `<app documents>/ObsidianFit`, creating it if needed.
+  /// Shared-storage vault on Android, readable by Syncthing/FolderSync.
+  static const String androidSharedVaultPath =
+      '/storage/emulated/0/Documents/ObsidianFit';
+
+  /// Opens the default vault, creating it if needed.
   ///
-  /// NOTE: on Android `getApplicationDocumentsDirectory()` is app-private, so
-  /// Syncthing cannot see it. A shared-storage vault path must be chosen
-  /// before sync works on Android; construct the service with that directory.
+  /// Android: `/storage/emulated/0/Documents/ObsidianFit` when "All files
+  /// access" is granted (needed for plain `dart:io` writes to shared storage
+  /// on Android 11+), else `<external app dir>/ObsidianFit`, else the
+  /// app-private documents directory. Only the first location is visible to
+  /// Syncthing. Other platforms: `<app documents>/ObsidianFit`.
   static Future<FilePersistenceService> openDefault() async {
-    final docs = await getApplicationDocumentsDirectory();
-    final dir = Directory(p.join(docs.path, 'ObsidianFit'));
+    final dir = await resolveDefaultVaultDir();
     await dir.create(recursive: true);
     return FilePersistenceService(dir);
+  }
+
+  static Future<Directory> resolveDefaultVaultDir() async {
+    if (Platform.isAndroid) {
+      final shared = Directory(androidSharedVaultPath);
+      if (await _hasAllFilesAccess() && await _canCreate(shared)) return shared;
+
+      final external = await getExternalStorageDirectory();
+      if (external != null) {
+        final dir = Directory(p.join(external.path, 'ObsidianFit'));
+        if (await _canCreate(dir)) return dir;
+      }
+    }
+    final docs = await getApplicationDocumentsDirectory();
+    return Directory(p.join(docs.path, 'ObsidianFit'));
+  }
+
+  static Future<bool> _hasAllFilesAccess() async {
+    try {
+      var status = await Permission.manageExternalStorage.status;
+      if (!status.isGranted) {
+        status = await Permission.manageExternalStorage.request();
+      }
+      return status.isGranted;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> _canCreate(Directory dir) async {
+    try {
+      await dir.create(recursive: true);
+      return true;
+    } on FileSystemException {
+      return false;
+    }
   }
 
   final Directory vaultDir;
@@ -43,6 +86,9 @@ class FilePersistenceService {
   static const String workoutsFolder = 'Workouts';
   static const String activitiesFolder = 'Activities';
   static const String plansFolder = 'Plans';
+
+  /// GPX tracks. Not in [dataFolders]: the re-indexer only reads `.md` notes.
+  static const String tracksFolder = 'Tracks';
   static const List<String> dataFolders = [
     workoutsFolder,
     activitiesFolder,
@@ -51,7 +97,7 @@ class FilePersistenceService {
 
   /// Creates the vault root and the three data folders if missing.
   Future<void> ensureStructure() async {
-    for (final f in dataFolders) {
+    for (final f in [...dataFolders, tracksFolder]) {
       await Directory(p.join(vaultDir.path, f)).create(recursive: true);
     }
   }
@@ -322,6 +368,31 @@ class FilePersistenceService {
     final path = relativePath ??
         _uniquePath(plansFolder, 'Plan_${_slug(plan.programName, 'Plan')}');
     return _writeAtomic(path, renderPlan(plan));
+  }
+
+  /// Saves GPX text as `Tracks/YYYY-MM-DD_HHMM_Route.gpx` (`_2`, `_3`, ...
+  /// if taken). The returned file's basename is what a note's `gpx_file`
+  /// wikilink should reference.
+  Future<File> saveGpx(DateTime startedAt, String gpxXml) {
+    final fileName = GpxService.fileNameFor(startedAt);
+    final stem = p.basenameWithoutExtension(fileName);
+    var path = '$tracksFolder/$stem.gpx';
+    var n = 2;
+    while (File(p.join(vaultDir.path, path)).existsSync()) {
+      path = '$tracksFolder/${stem}_$n.gpx';
+      n++;
+    }
+    return _writeAtomic(path, gpxXml);
+  }
+
+  /// Reads a track by bare file name (as stored in `ActivitySession.gpxFileName`).
+  Future<String> readTrack(String fileName) =>
+      File(p.join(vaultDir.path, tracksFolder, fileName)).readAsString();
+
+  /// Deletes a track by bare file name; ignores a missing file.
+  Future<void> deleteTrack(String fileName) async {
+    final f = File(p.join(vaultDir.path, tracksFolder, fileName));
+    if (await f.exists()) await f.delete();
   }
 
   /// Reads and parses one note. See [parseAny] for return types.
