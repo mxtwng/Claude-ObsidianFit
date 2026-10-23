@@ -51,11 +51,17 @@ Most fitness apps lock your history inside a proprietary cloud. ObsidianFit stor
 
 ```mermaid
 flowchart LR
-    GUI["Flutter GUI<br/>(dark mode)"] --> DB[("SQLite read cache<br/>Drift")]
-    DB <--> IDX["Vault Re-Indexer"]
-    IDX <--> FILES[("Flat files<br/>.md / .gpx")]
-    GUI -- "atomic writes" --> FILES
-    FILES <-. "Syncthing / rsync" .-> OTHER["Desktop / other devices<br/>(Obsidian)"]
+    GUI[Flutter GUI] -->|reads| DB[SQLite read cache]
+    DB <-->|sync| IDX[Vault Re-Indexer]
+    IDX <-->|scan and parse| FILES[Flat files md and gpx]
+    GUI -->|atomic writes| FILES
+    FILES <-->|Syncthing or rsync| OTHER[Desktop and Obsidian]
+```
+
+```text
+Flutter GUI --reads--> SQLite Read Cache <--> Vault Re-Indexer <--> Flat Files (.md / .gpx)
+     |                                                                   ^   |
+     +------------------------ atomic writes ---------------------------+   +--> Syncthing / rsync --> Desktop (Obsidian)
 ```
 
 - **Flat files are the source of truth.** SQLite is a disposable cache that can be rebuilt at any time.
