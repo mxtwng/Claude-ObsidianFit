@@ -218,6 +218,23 @@ class _SetLine extends StatelessWidget {
   final int number;
   final SetEntry set;
 
+  /// Human-readable load and amount: `80 kg × 8`, `BW × 12`,
+  /// `BW +10 kg × 6`, `BW · 60s hold`, plus plyometric extras.
+  static String _describe(SetEntry s) {
+    final extra = s.extraWeightKg ?? 0;
+    final load = s.isBodyweight
+        ? (extra > 0 ? 'BW +${formatDecimal(extra)} kg' : 'BW')
+        : '${formatDecimal(s.weightKg)} kg';
+    final hold = s.durationSeconds;
+    final b = StringBuffer(
+        hold != null ? '$load · ${hold}s hold' : '$load × ${s.reps ?? 0}');
+    if (s.boxHeightCm != null) {
+      b.write(' · ${formatDecimal(s.boxHeightCm!)} cm box');
+    }
+    if (s.contactTimeMs != null) b.write(' · ${s.contactTimeMs} ms contact');
+    return b.toString();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -233,7 +250,7 @@ class _SetLine extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              '${formatDecimal(set.weightKg)} kg × ${set.reps}',
+              _describe(set),
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
@@ -301,6 +318,7 @@ class _ActivityView extends StatelessWidget {
               if (pace != null) _Metric('Pace', '$pace /km'),
               if (a.elevationGainM != null)
                 _Metric('Elevation', '${a.elevationGainM!.round()} m'),
+              if (a.rpe != null) _Metric('RPE', formatDecimal(a.rpe!)),
               if (a.avgHr != null) _Metric('Avg HR', '${a.avgHr}'),
               if (a.maxHr != null) _Metric('Max HR', '${a.maxHr}'),
               if (a.tssScore != null) _Metric('TSS', '${a.tssScore}'),

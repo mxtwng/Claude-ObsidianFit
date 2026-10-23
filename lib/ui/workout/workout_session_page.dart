@@ -11,12 +11,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 import '../../models/Models.dart';
 import '../../services/screen_awake.dart';
 import '../../services/vault_reindexer_service.dart';
 import '../app_services.dart';
 import '../common/prompt_dialog.dart';
+import '../common/start_time_card.dart';
 import '../theme/app_theme.dart';
 import 'exercise_card.dart';
 import 'plate_calculator_sheet.dart';
@@ -64,10 +66,42 @@ Future<bool> startWorkoutSession(
   return saved ?? false;
 }
 
+/// "+ Log Past Session" for a gym workout: asks for a session name, then opens
+/// the logger in backdated mode, pre-filled with [day]. Date, time and
+/// duration stay editable on the screen. Returns true if a workout was saved.
+Future<bool> startRetroWorkoutSession(
+  BuildContext context, {
+  required DateTime day,
+  String? suggestedSplit,
+}) async {
+  final split = await promptText(
+    context,
+    title: 'Log past workout',
+    initial: suggestedSplit ?? '',
+    hint: 'e.g. Push Day A',
+    suggestions: _splitSuggestions,
+  );
+  if (split == null || !context.mounted) return false;
+  final saved = await Navigator.of(context).push<bool>(
+    MaterialPageRoute<bool>(
+      builder: (_) => WorkoutSessionPage(
+        split: split,
+        backdateTo: defaultRetroStart(day),
+      ),
+    ),
+  );
+  return saved ?? false;
+}
+
 class WorkoutSessionPage extends StatefulWidget {
-  const WorkoutSessionPage({super.key, required this.split});
+  const WorkoutSessionPage({super.key, required this.split, this.backdateTo});
 
   final String split;
+
+  /// When set, the session is logged after the fact: it starts at this local
+  /// time, the duration is typed in, and the note records `start_time` (this
+  /// instant) and `date_logged` (when it is saved) as UTC `...Z` timestamps.
+  final DateTime? backdateTo;
 
   @override
   State<WorkoutSessionPage> createState() => _WorkoutSessionPageState();
@@ -79,11 +113,22 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
   bool _restExpanded = false;
   bool _saving = false;
 
+  /// Live sessions keep the date/time card collapsed until "Backdate" is
+  /// tapped; backdated sessions always show it.
+  bool _whenOpen = false;
+
   @override
   void initState() {
     super.initState();
-    _draft = WorkoutDraft(split: widget.split);
-    unawaited(ScreenAwake.enable());
+    final backdate = widget.backdateTo;
+    _draft = WorkoutDraft(
+      split: widget.split,
+      startedAt: backdate,
+      manual: backdate != null,
+    );
+    // A backdated entry is typed up at leisure; only a live session needs the
+    // display held on.
+    if (backdate == null) unawaited(ScreenAwake.enable());
   }
 
   @override
@@ -232,7 +277,7 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
     var total = 0.0;
     for (final e in _draft.exercises) {
       for (final s in e.sets) {
-        if (s.done && s.type != SetType.warmup) total += s.weightKg * s.reps;
+        if (s.done && s.type != SetType.warmup) total += s.volumeKg;
       }
     }
     return total;
@@ -287,13 +332,23 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
                           ),
                         ],
                       ),
-                      _ElapsedText(
-                        startedAt: _draft.startedAt,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textDim,
+                      if (_draft.isManual)
+                        Text(
+                          'Backdated · '
+                          '${DateFormat('d MMM, HH:mm').format(_draft.startedAt)}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textDim,
+                          ),
+                        )
+                      else
+                        _ElapsedText(
+                          startedAt: _draft.startedAt,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textDim,
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -318,8 +373,36 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: [
+                if (_draft.isManual || _whenOpen)
+                  StartTimeCard(
+                    start: _draft.startedAt,
+                    title:
+                        _draft.isManual ? 'Session time' : 'Backdate session',
+                    onChanged: _draft.setStart,
+                    hint: _draft.isManual
+                        ? null
+                        : 'Pick a different date or time to log this session '
+                            'after the fact.',
+                    footer: _draft.isManual
+                        ? _DurationRow(
+                            minutes: _draft.manualDurationMin,
+                            onChanged: _draft.setManualDuration,
+                          )
+                        : null,
+                  )
+                else
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () => setState(() => _whenOpen = true),
+                      icon: const Icon(Icons.history, size: 18),
+                      label: const Text('Backdate'),
+                    ),
+                  ),
                 _StatsBar(
                   startedAt: _draft.startedAt,
+                  manualMinutes:
+                      _draft.isManual ? _draft.manualDurationMin : null,
                   volumeKg: _liveVolumeKg(),
                   done: _draft.completedSets,
                   total: _draft.completedSets + _draft.pendingSets,
@@ -412,12 +495,16 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
 class _StatsBar extends StatelessWidget {
   const _StatsBar({
     required this.startedAt,
+    required this.manualMinutes,
     required this.volumeKg,
     required this.done,
     required this.total,
   });
 
   final DateTime startedAt;
+
+  /// Typed-in duration of a backdated session; null while the clock runs.
+  final int? manualMinutes;
   final double volumeKg;
   final int done;
   final int total;
@@ -437,7 +524,9 @@ class _StatsBar extends StatelessWidget {
         children: [
           _Stat(
             label: 'Time',
-            child: _ElapsedText(startedAt: startedAt, style: valueStyle),
+            child: manualMinutes != null
+                ? Text('$manualMinutes min', style: valueStyle)
+                : _ElapsedText(startedAt: startedAt, style: valueStyle),
           ),
           _Stat(
             label: 'Volume',
@@ -471,6 +560,66 @@ class _Stat extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(fontSize: 11, color: AppColors.textDim),
+        ),
+      ],
+    );
+  }
+}
+
+/// Duration control for a backdated session: [-] 55 min [+], tap the value
+/// to type it.
+class _DurationRow extends StatelessWidget {
+  const _DurationRow({required this.minutes, required this.onChanged});
+
+  final int minutes;
+  final ValueChanged<int> onChanged;
+
+  static const int _step = 5;
+
+  Future<void> _edit(BuildContext context) async {
+    final v = await promptNumber(
+      context,
+      title: 'Duration (minutes)',
+      initial: minutes.toDouble(),
+      integer: true,
+      min: 1,
+      max: 1440,
+    );
+    if (v != null) onChanged(v.round());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Icon(Icons.timer_outlined, size: 18, color: AppColors.textDim),
+        const SizedBox(width: 8),
+        const Text('Duration', style: TextStyle(color: AppColors.textDim)),
+        const Spacer(),
+        IconButton(
+          tooltip: '−$_step min',
+          visualDensity: VisualDensity.compact,
+          icon: const Icon(Icons.remove),
+          onPressed: minutes > 1
+              ? () => onChanged(minutes - _step < 1 ? 1 : minutes - _step)
+              : null,
+        ),
+        InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: () => _edit(context),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: Text(
+              '$minutes min',
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ),
+        IconButton(
+          tooltip: '+$_step min',
+          visualDensity: VisualDensity.compact,
+          icon: const Icon(Icons.add),
+          onPressed: () => onChanged(minutes + _step),
         ),
       ],
     );

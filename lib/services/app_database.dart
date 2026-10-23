@@ -182,16 +182,21 @@ class AppDatabase extends _$AppDatabase {
 
   // ---- UI streams -----------------------------------------------------------
 
+  /// Newest first by the physical execution instant: `start_time` when the
+  /// note has one, otherwise the legacy `date` (local midnight) with
+  /// `timeStarted` as the tie-breaker. The UI re-sorts the merged workout +
+  /// activity list with `SessionEntry.sortInstant`, which also folds a legacy
+  /// `timeStarted` into the instant, so this is the coarse DB-side order.
   Stream<List<WorkoutIndexRow>> watchWorkouts() => (select(workoutsIndex)
         ..orderBy([
-          (t) => OrderingTerm.desc(t.date),
+          (t) => OrderingTerm.desc(coalesce<DateTime>([t.startTime, t.date])),
           (t) => OrderingTerm.desc(t.timeStarted),
         ]))
       .watch();
 
   Stream<List<ActivityIndexRow>> watchActivities() => (select(activitiesIndex)
         ..orderBy([
-          (t) => OrderingTerm.desc(t.date),
+          (t) => OrderingTerm.desc(coalesce<DateTime>([t.startTime, t.date])),
           (t) => OrderingTerm.desc(t.timeStarted),
         ]))
       .watch();

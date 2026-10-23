@@ -230,6 +230,8 @@ class VaultReindexerService {
       totalVolumeKg: Value(w.totalVolumeKg),
       tssScore: Value(w.tssScore),
       readinessScore: Value(w.readinessScore),
+      startTime: Value(w.startTime),
+      dateLogged: Value(w.dateLogged),
       updatedAt: modified,
     );
   }
@@ -250,6 +252,10 @@ class VaultReindexerService {
       avgHr: Value(a.avgHr),
       tssScore: Value(a.tssScore),
       gpxFileName: Value(a.gpxFileName),
+      startTime: Value(a.startTime),
+      dateLogged: Value(a.dateLogged),
+      durationSeconds: Value(a.durationSeconds),
+      rpe: Value(a.rpe),
       updatedAt: modified,
     );
   }

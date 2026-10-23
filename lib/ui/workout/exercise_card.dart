@@ -53,7 +53,7 @@ class ExerciseCard extends StatelessWidget {
                 tooltip: 'Plate calculator',
                 icon: const Icon(Icons.calculate_outlined),
                 onPressed: () {
-                  final weight = sets.isEmpty ? 0.0 : sets.last.weightKg;
+                  final weight = sets.isEmpty ? 0.0 : sets.last.loadKg;
                   onPlates(weight > 0 ? weight : 60);
                 },
               ),

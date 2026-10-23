@@ -44,10 +44,12 @@ class _SessionEntriesBuilderState extends State<SessionEntriesBuilder> {
               for (final r in activities.data ?? const <ActivityIndexRow>[])
                 SessionEntry.fromActivity(r),
             ]..sort((a, b) {
-                final byDate = b.date.compareTo(a.date);
-                return byDate != 0
-                    ? byDate
-                    : b.timeStarted.compareTo(a.timeStarted);
+                // Newest first by when the session physically happened
+                // (start_time), falling back to date + time for legacy notes.
+                final byInstant = b.sortInstant.compareTo(a.sortInstant);
+                return byInstant != 0
+                    ? byInstant
+                    : b.filePath.compareTo(a.filePath);
               });
             return widget.builder(context, entries);
           },

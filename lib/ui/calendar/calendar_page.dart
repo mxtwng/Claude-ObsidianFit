@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../models/Models.dart';
 import '../app_services.dart';
+import '../common/log_past_session_sheet.dart';
 import '../common/schedule.dart';
 import '../common/session_entries_builder.dart';
 import '../common/session_entry.dart';
@@ -52,11 +53,34 @@ class _CalendarPageState extends State<CalendarPage> {
     startWorkoutSession(context, suggestedSplit: suggestion);
   }
 
+  bool _isPast(DateTime day) => _dayOf(day).isBefore(_dayOf(DateTime.now()));
+
+  /// "+ Log Past Session" for [day], pre-filled with that date and, unless it
+  /// was a rest day, the plan's routine for it.
+  Future<void> _logPast(DateTime day, ScheduledSession? scheduled) async {
+    if (!mounted) return;
+    final routine =
+        (scheduled != null && !scheduled.isRest) ? scheduled.label : null;
+    await showLogPastSessionSheet(
+      context,
+      day: day,
+      scheduledText: scheduled == null
+          ? null
+          : '${scheduled.label} · ${scheduled.planName}',
+      suggestedSplit: routine,
+    );
+  }
+
   void _openDay(
     DateTime day,
     List<SessionEntry> entries,
     ScheduledSession? scheduled,
   ) {
+    // An empty past day goes straight to "+ Log Past Session".
+    if (entries.isEmpty && _isPast(day)) {
+      _logPast(day, scheduled);
+      return;
+    }
     final pageContext = context;
     showModalBottomSheet<void>(
       context: pageContext,
@@ -78,6 +102,10 @@ class _CalendarPageState extends State<CalendarPage> {
         onStart: () {
           Navigator.of(sheetContext).pop();
           _start(scheduled);
+        },
+        onLogPast: () {
+          Navigator.of(sheetContext).pop();
+          _logPast(day, scheduled);
         },
       ),
     );
@@ -448,6 +476,7 @@ class _DaySheet extends StatelessWidget {
     required this.scheduled,
     required this.onOpenEntry,
     required this.onStart,
+    required this.onLogPast,
   });
 
   final DateTime day;
@@ -456,11 +485,16 @@ class _DaySheet extends StatelessWidget {
   final void Function(SessionEntry entry) onOpenEntry;
   final VoidCallback onStart;
 
+  /// Opens the "+ Log Past Session" chooser for this day (past days only).
+  final VoidCallback onLogPast;
+
   @override
   Widget build(BuildContext context) {
     final s = scheduled;
-    // A session always logs "now", so only offer it for today.
+    // "Start Session" logs live ("now"), so it is only offered for today;
+    // earlier days offer "+ Log Past Session" instead.
     final isToday = _sameDay(day, DateTime.now());
+    final isPast = _dayOf(day).isBefore(_dayOf(DateTime.now()));
     return ListView(
       shrinkWrap: true,
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
@@ -500,6 +534,14 @@ class _DaySheet extends StatelessWidget {
             onPressed: onStart,
             icon: const Icon(Icons.play_arrow),
             label: const Text('Start Session'),
+          ),
+        ],
+        if (isPast) ...[
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: onLogPast,
+            icon: const Icon(Icons.add),
+            label: const Text('+ Log Past Session'),
           ),
         ],
       ],

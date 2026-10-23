@@ -31,6 +31,7 @@ import '../app_services.dart';
 import '../common/prompt_dialog.dart';
 import '../theme/app_theme.dart';
 import 'hr_sheet.dart';
+import 'manual_activity_page.dart';
 import 'map_view.dart';
 
 const List<String> _categorySuggestions = ['Run', 'Ride', 'Walk', 'Hike'];
@@ -190,6 +191,17 @@ class _ActivitySessionPageState extends State<ActivitySessionPage> {
 
   Future<void> _confirmLeave() => _discard();
 
+  /// Idle-state escape hatch: enter the activity by hand (no GPS trace, no
+  /// route map). The manual screen has its own date, time and metrics fields.
+  Future<void> _logManually() async {
+    final navigator = Navigator.of(context);
+    final saved = await startManualActivity(
+      context,
+      category: widget.category,
+    );
+    if (saved && mounted) navigator.pop(true);
+  }
+
   Future<void> _save() async {
     final result = _result;
     if (result == null || _saving) return;
@@ -217,6 +229,10 @@ class _ActivitySessionPageState extends State<ActivitySessionPage> {
         category: _category,
         date: DateTime(started.year, started.month, started.day),
         timeStarted: DateFormat('HH:mm').format(started),
+        // Live recording: both instants are the start (schema: live sessions
+        // write start_time and date_logged with the same value).
+        startTime: started.toUtc(),
+        dateLogged: started.toUtc(),
         durationMin: (result.activeDuration.inSeconds / 60 * 10).round() / 10,
         distanceKm: result.hasTrack
             ? double.parse(result.distanceKm.toStringAsFixed(2))
@@ -520,15 +536,26 @@ class _ActivitySessionPageState extends State<ActivitySessionPage> {
   Widget _controls(RecorderState state) {
     switch (state) {
       case RecorderState.idle:
-        return FilledButton.icon(
-          onPressed: _start,
-          icon: const Icon(Icons.play_arrow),
-          label: const Text('Start'),
-          style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(56),
-            textStyle:
-                const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-          ),
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FilledButton.icon(
+              onPressed: _start,
+              icon: const Icon(Icons.play_arrow),
+              label: const Text('Start'),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(56),
+                textStyle:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              ),
+            ),
+            const SizedBox(height: 4),
+            TextButton.icon(
+              onPressed: _logManually,
+              icon: const Icon(Icons.edit_calendar, size: 18),
+              label: const Text('Log without GPS'),
+            ),
+          ],
         );
       case RecorderState.recording:
         return Row(

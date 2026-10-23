@@ -66,6 +66,18 @@ class $WorkoutsIndexTable extends WorkoutsIndex
   late final GeneratedColumn<int> readinessScore = GeneratedColumn<int>(
       'readiness_score', aliasedName, true,
       type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _startTimeMeta =
+      const VerificationMeta('startTime');
+  @override
+  late final GeneratedColumn<DateTime> startTime = GeneratedColumn<DateTime>(
+      'start_time', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _dateLoggedMeta =
+      const VerificationMeta('dateLogged');
+  @override
+  late final GeneratedColumn<DateTime> dateLogged = GeneratedColumn<DateTime>(
+      'date_logged', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
   static const VerificationMeta _updatedAtMeta =
       const VerificationMeta('updatedAt');
   @override
@@ -83,6 +95,8 @@ class $WorkoutsIndexTable extends WorkoutsIndex
         totalVolumeKg,
         tssScore,
         readinessScore,
+        startTime,
+        dateLogged,
         updatedAt
       ];
   @override
@@ -148,6 +162,16 @@ class $WorkoutsIndexTable extends WorkoutsIndex
           readinessScore.isAcceptableOrUnknown(
               data['readiness_score']!, _readinessScoreMeta));
     }
+    if (data.containsKey('start_time')) {
+      context.handle(_startTimeMeta,
+          startTime.isAcceptableOrUnknown(data['start_time']!, _startTimeMeta));
+    }
+    if (data.containsKey('date_logged')) {
+      context.handle(
+          _dateLoggedMeta,
+          dateLogged.isAcceptableOrUnknown(
+              data['date_logged']!, _dateLoggedMeta));
+    }
     if (data.containsKey('updated_at')) {
       context.handle(_updatedAtMeta,
           updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
@@ -181,6 +205,10 @@ class $WorkoutsIndexTable extends WorkoutsIndex
           .read(DriftSqlType.int, data['${effectivePrefix}tss_score']),
       readinessScore: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}readiness_score']),
+      startTime: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}start_time']),
+      dateLogged: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}date_logged']),
       updatedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
     );
@@ -202,6 +230,11 @@ class WorkoutIndexRow extends DataClass implements Insertable<WorkoutIndexRow> {
   final double? totalVolumeKg;
   final int? tssScore;
   final int? readinessScore;
+
+  /// `start_time` / `date_logged` frontmatter (UTC instants). Null on legacy
+  /// notes written before Phase 5.
+  final DateTime? startTime;
+  final DateTime? dateLogged;
   final DateTime updatedAt;
   const WorkoutIndexRow(
       {required this.id,
@@ -213,6 +246,8 @@ class WorkoutIndexRow extends DataClass implements Insertable<WorkoutIndexRow> {
       this.totalVolumeKg,
       this.tssScore,
       this.readinessScore,
+      this.startTime,
+      this.dateLogged,
       required this.updatedAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -231,6 +266,12 @@ class WorkoutIndexRow extends DataClass implements Insertable<WorkoutIndexRow> {
     }
     if (!nullToAbsent || readinessScore != null) {
       map['readiness_score'] = Variable<int>(readinessScore);
+    }
+    if (!nullToAbsent || startTime != null) {
+      map['start_time'] = Variable<DateTime>(startTime);
+    }
+    if (!nullToAbsent || dateLogged != null) {
+      map['date_logged'] = Variable<DateTime>(dateLogged);
     }
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -253,6 +294,12 @@ class WorkoutIndexRow extends DataClass implements Insertable<WorkoutIndexRow> {
       readinessScore: readinessScore == null && nullToAbsent
           ? const Value.absent()
           : Value(readinessScore),
+      startTime: startTime == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startTime),
+      dateLogged: dateLogged == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dateLogged),
       updatedAt: Value(updatedAt),
     );
   }
@@ -270,6 +317,8 @@ class WorkoutIndexRow extends DataClass implements Insertable<WorkoutIndexRow> {
       totalVolumeKg: serializer.fromJson<double?>(json['totalVolumeKg']),
       tssScore: serializer.fromJson<int?>(json['tssScore']),
       readinessScore: serializer.fromJson<int?>(json['readinessScore']),
+      startTime: serializer.fromJson<DateTime?>(json['startTime']),
+      dateLogged: serializer.fromJson<DateTime?>(json['dateLogged']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
   }
@@ -286,6 +335,8 @@ class WorkoutIndexRow extends DataClass implements Insertable<WorkoutIndexRow> {
       'totalVolumeKg': serializer.toJson<double?>(totalVolumeKg),
       'tssScore': serializer.toJson<int?>(tssScore),
       'readinessScore': serializer.toJson<int?>(readinessScore),
+      'startTime': serializer.toJson<DateTime?>(startTime),
+      'dateLogged': serializer.toJson<DateTime?>(dateLogged),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
   }
@@ -300,6 +351,8 @@ class WorkoutIndexRow extends DataClass implements Insertable<WorkoutIndexRow> {
           Value<double?> totalVolumeKg = const Value.absent(),
           Value<int?> tssScore = const Value.absent(),
           Value<int?> readinessScore = const Value.absent(),
+          Value<DateTime?> startTime = const Value.absent(),
+          Value<DateTime?> dateLogged = const Value.absent(),
           DateTime? updatedAt}) =>
       WorkoutIndexRow(
         id: id ?? this.id,
@@ -313,6 +366,8 @@ class WorkoutIndexRow extends DataClass implements Insertable<WorkoutIndexRow> {
         tssScore: tssScore.present ? tssScore.value : this.tssScore,
         readinessScore:
             readinessScore.present ? readinessScore.value : this.readinessScore,
+        startTime: startTime.present ? startTime.value : this.startTime,
+        dateLogged: dateLogged.present ? dateLogged.value : this.dateLogged,
         updatedAt: updatedAt ?? this.updatedAt,
       );
   WorkoutIndexRow copyWithCompanion(WorkoutsIndexCompanion data) {
@@ -332,6 +387,9 @@ class WorkoutIndexRow extends DataClass implements Insertable<WorkoutIndexRow> {
       readinessScore: data.readinessScore.present
           ? data.readinessScore.value
           : this.readinessScore,
+      startTime: data.startTime.present ? data.startTime.value : this.startTime,
+      dateLogged:
+          data.dateLogged.present ? data.dateLogged.value : this.dateLogged,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -348,14 +406,27 @@ class WorkoutIndexRow extends DataClass implements Insertable<WorkoutIndexRow> {
           ..write('totalVolumeKg: $totalVolumeKg, ')
           ..write('tssScore: $tssScore, ')
           ..write('readinessScore: $readinessScore, ')
+          ..write('startTime: $startTime, ')
+          ..write('dateLogged: $dateLogged, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, filePath, split, date, timeStarted,
-      durationMin, totalVolumeKg, tssScore, readinessScore, updatedAt);
+  int get hashCode => Object.hash(
+      id,
+      filePath,
+      split,
+      date,
+      timeStarted,
+      durationMin,
+      totalVolumeKg,
+      tssScore,
+      readinessScore,
+      startTime,
+      dateLogged,
+      updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -369,6 +440,8 @@ class WorkoutIndexRow extends DataClass implements Insertable<WorkoutIndexRow> {
           other.totalVolumeKg == this.totalVolumeKg &&
           other.tssScore == this.tssScore &&
           other.readinessScore == this.readinessScore &&
+          other.startTime == this.startTime &&
+          other.dateLogged == this.dateLogged &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -382,6 +455,8 @@ class WorkoutsIndexCompanion extends UpdateCompanion<WorkoutIndexRow> {
   final Value<double?> totalVolumeKg;
   final Value<int?> tssScore;
   final Value<int?> readinessScore;
+  final Value<DateTime?> startTime;
+  final Value<DateTime?> dateLogged;
   final Value<DateTime> updatedAt;
   const WorkoutsIndexCompanion({
     this.id = const Value.absent(),
@@ -393,6 +468,8 @@ class WorkoutsIndexCompanion extends UpdateCompanion<WorkoutIndexRow> {
     this.totalVolumeKg = const Value.absent(),
     this.tssScore = const Value.absent(),
     this.readinessScore = const Value.absent(),
+    this.startTime = const Value.absent(),
+    this.dateLogged = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
   WorkoutsIndexCompanion.insert({
@@ -405,6 +482,8 @@ class WorkoutsIndexCompanion extends UpdateCompanion<WorkoutIndexRow> {
     this.totalVolumeKg = const Value.absent(),
     this.tssScore = const Value.absent(),
     this.readinessScore = const Value.absent(),
+    this.startTime = const Value.absent(),
+    this.dateLogged = const Value.absent(),
     required DateTime updatedAt,
   })  : filePath = Value(filePath),
         split = Value(split),
@@ -422,6 +501,8 @@ class WorkoutsIndexCompanion extends UpdateCompanion<WorkoutIndexRow> {
     Expression<double>? totalVolumeKg,
     Expression<int>? tssScore,
     Expression<int>? readinessScore,
+    Expression<DateTime>? startTime,
+    Expression<DateTime>? dateLogged,
     Expression<DateTime>? updatedAt,
   }) {
     return RawValuesInsertable({
@@ -434,6 +515,8 @@ class WorkoutsIndexCompanion extends UpdateCompanion<WorkoutIndexRow> {
       if (totalVolumeKg != null) 'total_volume_kg': totalVolumeKg,
       if (tssScore != null) 'tss_score': tssScore,
       if (readinessScore != null) 'readiness_score': readinessScore,
+      if (startTime != null) 'start_time': startTime,
+      if (dateLogged != null) 'date_logged': dateLogged,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
   }
@@ -448,6 +531,8 @@ class WorkoutsIndexCompanion extends UpdateCompanion<WorkoutIndexRow> {
       Value<double?>? totalVolumeKg,
       Value<int?>? tssScore,
       Value<int?>? readinessScore,
+      Value<DateTime?>? startTime,
+      Value<DateTime?>? dateLogged,
       Value<DateTime>? updatedAt}) {
     return WorkoutsIndexCompanion(
       id: id ?? this.id,
@@ -459,6 +544,8 @@ class WorkoutsIndexCompanion extends UpdateCompanion<WorkoutIndexRow> {
       totalVolumeKg: totalVolumeKg ?? this.totalVolumeKg,
       tssScore: tssScore ?? this.tssScore,
       readinessScore: readinessScore ?? this.readinessScore,
+      startTime: startTime ?? this.startTime,
+      dateLogged: dateLogged ?? this.dateLogged,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
@@ -493,6 +580,12 @@ class WorkoutsIndexCompanion extends UpdateCompanion<WorkoutIndexRow> {
     if (readinessScore.present) {
       map['readiness_score'] = Variable<int>(readinessScore.value);
     }
+    if (startTime.present) {
+      map['start_time'] = Variable<DateTime>(startTime.value);
+    }
+    if (dateLogged.present) {
+      map['date_logged'] = Variable<DateTime>(dateLogged.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
@@ -511,6 +604,8 @@ class WorkoutsIndexCompanion extends UpdateCompanion<WorkoutIndexRow> {
           ..write('totalVolumeKg: $totalVolumeKg, ')
           ..write('tssScore: $tssScore, ')
           ..write('readinessScore: $readinessScore, ')
+          ..write('startTime: $startTime, ')
+          ..write('dateLogged: $dateLogged, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -592,6 +687,29 @@ class $ActivitiesIndexTable extends ActivitiesIndex
   late final GeneratedColumn<String> gpxFileName = GeneratedColumn<String>(
       'gpx_file_name', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _startTimeMeta =
+      const VerificationMeta('startTime');
+  @override
+  late final GeneratedColumn<DateTime> startTime = GeneratedColumn<DateTime>(
+      'start_time', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _dateLoggedMeta =
+      const VerificationMeta('dateLogged');
+  @override
+  late final GeneratedColumn<DateTime> dateLogged = GeneratedColumn<DateTime>(
+      'date_logged', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _durationSecondsMeta =
+      const VerificationMeta('durationSeconds');
+  @override
+  late final GeneratedColumn<int> durationSeconds = GeneratedColumn<int>(
+      'duration_seconds', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _rpeMeta = const VerificationMeta('rpe');
+  @override
+  late final GeneratedColumn<double> rpe = GeneratedColumn<double>(
+      'rpe', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _updatedAtMeta =
       const VerificationMeta('updatedAt');
   @override
@@ -611,6 +729,10 @@ class $ActivitiesIndexTable extends ActivitiesIndex
         avgHr,
         tssScore,
         gpxFileName,
+        startTime,
+        dateLogged,
+        durationSeconds,
+        rpe,
         updatedAt
       ];
   @override
@@ -686,6 +808,26 @@ class $ActivitiesIndexTable extends ActivitiesIndex
           gpxFileName.isAcceptableOrUnknown(
               data['gpx_file_name']!, _gpxFileNameMeta));
     }
+    if (data.containsKey('start_time')) {
+      context.handle(_startTimeMeta,
+          startTime.isAcceptableOrUnknown(data['start_time']!, _startTimeMeta));
+    }
+    if (data.containsKey('date_logged')) {
+      context.handle(
+          _dateLoggedMeta,
+          dateLogged.isAcceptableOrUnknown(
+              data['date_logged']!, _dateLoggedMeta));
+    }
+    if (data.containsKey('duration_seconds')) {
+      context.handle(
+          _durationSecondsMeta,
+          durationSeconds.isAcceptableOrUnknown(
+              data['duration_seconds']!, _durationSecondsMeta));
+    }
+    if (data.containsKey('rpe')) {
+      context.handle(
+          _rpeMeta, rpe.isAcceptableOrUnknown(data['rpe']!, _rpeMeta));
+    }
     if (data.containsKey('updated_at')) {
       context.handle(_updatedAtMeta,
           updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
@@ -723,6 +865,14 @@ class $ActivitiesIndexTable extends ActivitiesIndex
           .read(DriftSqlType.int, data['${effectivePrefix}tss_score']),
       gpxFileName: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}gpx_file_name']),
+      startTime: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}start_time']),
+      dateLogged: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}date_logged']),
+      durationSeconds: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}duration_seconds']),
+      rpe: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}rpe']),
       updatedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
     );
@@ -747,6 +897,14 @@ class ActivityIndexRow extends DataClass
   final int? avgHr;
   final int? tssScore;
   final String? gpxFileName;
+
+  /// Phase 5 metadata. `startTime` / `dateLogged` are UTC instants (null on
+  /// legacy notes); `durationSeconds` and `rpe` are written by the manual
+  /// outdoor logger.
+  final DateTime? startTime;
+  final DateTime? dateLogged;
+  final int? durationSeconds;
+  final double? rpe;
   final DateTime updatedAt;
   const ActivityIndexRow(
       {required this.id,
@@ -760,6 +918,10 @@ class ActivityIndexRow extends DataClass
       this.avgHr,
       this.tssScore,
       this.gpxFileName,
+      this.startTime,
+      this.dateLogged,
+      this.durationSeconds,
+      this.rpe,
       required this.updatedAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -784,6 +946,18 @@ class ActivityIndexRow extends DataClass
     }
     if (!nullToAbsent || gpxFileName != null) {
       map['gpx_file_name'] = Variable<String>(gpxFileName);
+    }
+    if (!nullToAbsent || startTime != null) {
+      map['start_time'] = Variable<DateTime>(startTime);
+    }
+    if (!nullToAbsent || dateLogged != null) {
+      map['date_logged'] = Variable<DateTime>(dateLogged);
+    }
+    if (!nullToAbsent || durationSeconds != null) {
+      map['duration_seconds'] = Variable<int>(durationSeconds);
+    }
+    if (!nullToAbsent || rpe != null) {
+      map['rpe'] = Variable<double>(rpe);
     }
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -811,6 +985,16 @@ class ActivityIndexRow extends DataClass
       gpxFileName: gpxFileName == null && nullToAbsent
           ? const Value.absent()
           : Value(gpxFileName),
+      startTime: startTime == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startTime),
+      dateLogged: dateLogged == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dateLogged),
+      durationSeconds: durationSeconds == null && nullToAbsent
+          ? const Value.absent()
+          : Value(durationSeconds),
+      rpe: rpe == null && nullToAbsent ? const Value.absent() : Value(rpe),
       updatedAt: Value(updatedAt),
     );
   }
@@ -830,6 +1014,10 @@ class ActivityIndexRow extends DataClass
       avgHr: serializer.fromJson<int?>(json['avgHr']),
       tssScore: serializer.fromJson<int?>(json['tssScore']),
       gpxFileName: serializer.fromJson<String?>(json['gpxFileName']),
+      startTime: serializer.fromJson<DateTime?>(json['startTime']),
+      dateLogged: serializer.fromJson<DateTime?>(json['dateLogged']),
+      durationSeconds: serializer.fromJson<int?>(json['durationSeconds']),
+      rpe: serializer.fromJson<double?>(json['rpe']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
   }
@@ -848,6 +1036,10 @@ class ActivityIndexRow extends DataClass
       'avgHr': serializer.toJson<int?>(avgHr),
       'tssScore': serializer.toJson<int?>(tssScore),
       'gpxFileName': serializer.toJson<String?>(gpxFileName),
+      'startTime': serializer.toJson<DateTime?>(startTime),
+      'dateLogged': serializer.toJson<DateTime?>(dateLogged),
+      'durationSeconds': serializer.toJson<int?>(durationSeconds),
+      'rpe': serializer.toJson<double?>(rpe),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
   }
@@ -864,6 +1056,10 @@ class ActivityIndexRow extends DataClass
           Value<int?> avgHr = const Value.absent(),
           Value<int?> tssScore = const Value.absent(),
           Value<String?> gpxFileName = const Value.absent(),
+          Value<DateTime?> startTime = const Value.absent(),
+          Value<DateTime?> dateLogged = const Value.absent(),
+          Value<int?> durationSeconds = const Value.absent(),
+          Value<double?> rpe = const Value.absent(),
           DateTime? updatedAt}) =>
       ActivityIndexRow(
         id: id ?? this.id,
@@ -878,6 +1074,12 @@ class ActivityIndexRow extends DataClass
         avgHr: avgHr.present ? avgHr.value : this.avgHr,
         tssScore: tssScore.present ? tssScore.value : this.tssScore,
         gpxFileName: gpxFileName.present ? gpxFileName.value : this.gpxFileName,
+        startTime: startTime.present ? startTime.value : this.startTime,
+        dateLogged: dateLogged.present ? dateLogged.value : this.dateLogged,
+        durationSeconds: durationSeconds.present
+            ? durationSeconds.value
+            : this.durationSeconds,
+        rpe: rpe.present ? rpe.value : this.rpe,
         updatedAt: updatedAt ?? this.updatedAt,
       );
   ActivityIndexRow copyWithCompanion(ActivitiesIndexCompanion data) {
@@ -899,6 +1101,13 @@ class ActivityIndexRow extends DataClass
       tssScore: data.tssScore.present ? data.tssScore.value : this.tssScore,
       gpxFileName:
           data.gpxFileName.present ? data.gpxFileName.value : this.gpxFileName,
+      startTime: data.startTime.present ? data.startTime.value : this.startTime,
+      dateLogged:
+          data.dateLogged.present ? data.dateLogged.value : this.dateLogged,
+      durationSeconds: data.durationSeconds.present
+          ? data.durationSeconds.value
+          : this.durationSeconds,
+      rpe: data.rpe.present ? data.rpe.value : this.rpe,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -917,6 +1126,10 @@ class ActivityIndexRow extends DataClass
           ..write('avgHr: $avgHr, ')
           ..write('tssScore: $tssScore, ')
           ..write('gpxFileName: $gpxFileName, ')
+          ..write('startTime: $startTime, ')
+          ..write('dateLogged: $dateLogged, ')
+          ..write('durationSeconds: $durationSeconds, ')
+          ..write('rpe: $rpe, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -935,6 +1148,10 @@ class ActivityIndexRow extends DataClass
       avgHr,
       tssScore,
       gpxFileName,
+      startTime,
+      dateLogged,
+      durationSeconds,
+      rpe,
       updatedAt);
   @override
   bool operator ==(Object other) =>
@@ -951,6 +1168,10 @@ class ActivityIndexRow extends DataClass
           other.avgHr == this.avgHr &&
           other.tssScore == this.tssScore &&
           other.gpxFileName == this.gpxFileName &&
+          other.startTime == this.startTime &&
+          other.dateLogged == this.dateLogged &&
+          other.durationSeconds == this.durationSeconds &&
+          other.rpe == this.rpe &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -966,6 +1187,10 @@ class ActivitiesIndexCompanion extends UpdateCompanion<ActivityIndexRow> {
   final Value<int?> avgHr;
   final Value<int?> tssScore;
   final Value<String?> gpxFileName;
+  final Value<DateTime?> startTime;
+  final Value<DateTime?> dateLogged;
+  final Value<int?> durationSeconds;
+  final Value<double?> rpe;
   final Value<DateTime> updatedAt;
   const ActivitiesIndexCompanion({
     this.id = const Value.absent(),
@@ -979,6 +1204,10 @@ class ActivitiesIndexCompanion extends UpdateCompanion<ActivityIndexRow> {
     this.avgHr = const Value.absent(),
     this.tssScore = const Value.absent(),
     this.gpxFileName = const Value.absent(),
+    this.startTime = const Value.absent(),
+    this.dateLogged = const Value.absent(),
+    this.durationSeconds = const Value.absent(),
+    this.rpe = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
   ActivitiesIndexCompanion.insert({
@@ -993,6 +1222,10 @@ class ActivitiesIndexCompanion extends UpdateCompanion<ActivityIndexRow> {
     this.avgHr = const Value.absent(),
     this.tssScore = const Value.absent(),
     this.gpxFileName = const Value.absent(),
+    this.startTime = const Value.absent(),
+    this.dateLogged = const Value.absent(),
+    this.durationSeconds = const Value.absent(),
+    this.rpe = const Value.absent(),
     required DateTime updatedAt,
   })  : filePath = Value(filePath),
         category = Value(category),
@@ -1012,6 +1245,10 @@ class ActivitiesIndexCompanion extends UpdateCompanion<ActivityIndexRow> {
     Expression<int>? avgHr,
     Expression<int>? tssScore,
     Expression<String>? gpxFileName,
+    Expression<DateTime>? startTime,
+    Expression<DateTime>? dateLogged,
+    Expression<int>? durationSeconds,
+    Expression<double>? rpe,
     Expression<DateTime>? updatedAt,
   }) {
     return RawValuesInsertable({
@@ -1026,6 +1263,10 @@ class ActivitiesIndexCompanion extends UpdateCompanion<ActivityIndexRow> {
       if (avgHr != null) 'avg_hr': avgHr,
       if (tssScore != null) 'tss_score': tssScore,
       if (gpxFileName != null) 'gpx_file_name': gpxFileName,
+      if (startTime != null) 'start_time': startTime,
+      if (dateLogged != null) 'date_logged': dateLogged,
+      if (durationSeconds != null) 'duration_seconds': durationSeconds,
+      if (rpe != null) 'rpe': rpe,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
   }
@@ -1042,6 +1283,10 @@ class ActivitiesIndexCompanion extends UpdateCompanion<ActivityIndexRow> {
       Value<int?>? avgHr,
       Value<int?>? tssScore,
       Value<String?>? gpxFileName,
+      Value<DateTime?>? startTime,
+      Value<DateTime?>? dateLogged,
+      Value<int?>? durationSeconds,
+      Value<double?>? rpe,
       Value<DateTime>? updatedAt}) {
     return ActivitiesIndexCompanion(
       id: id ?? this.id,
@@ -1055,6 +1300,10 @@ class ActivitiesIndexCompanion extends UpdateCompanion<ActivityIndexRow> {
       avgHr: avgHr ?? this.avgHr,
       tssScore: tssScore ?? this.tssScore,
       gpxFileName: gpxFileName ?? this.gpxFileName,
+      startTime: startTime ?? this.startTime,
+      dateLogged: dateLogged ?? this.dateLogged,
+      durationSeconds: durationSeconds ?? this.durationSeconds,
+      rpe: rpe ?? this.rpe,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
@@ -1095,6 +1344,18 @@ class ActivitiesIndexCompanion extends UpdateCompanion<ActivityIndexRow> {
     if (gpxFileName.present) {
       map['gpx_file_name'] = Variable<String>(gpxFileName.value);
     }
+    if (startTime.present) {
+      map['start_time'] = Variable<DateTime>(startTime.value);
+    }
+    if (dateLogged.present) {
+      map['date_logged'] = Variable<DateTime>(dateLogged.value);
+    }
+    if (durationSeconds.present) {
+      map['duration_seconds'] = Variable<int>(durationSeconds.value);
+    }
+    if (rpe.present) {
+      map['rpe'] = Variable<double>(rpe.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
@@ -1115,6 +1376,10 @@ class ActivitiesIndexCompanion extends UpdateCompanion<ActivityIndexRow> {
           ..write('avgHr: $avgHr, ')
           ..write('tssScore: $tssScore, ')
           ..write('gpxFileName: $gpxFileName, ')
+          ..write('startTime: $startTime, ')
+          ..write('dateLogged: $dateLogged, ')
+          ..write('durationSeconds: $durationSeconds, ')
+          ..write('rpe: $rpe, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -1542,6 +1807,8 @@ typedef $$WorkoutsIndexTableCreateCompanionBuilder = WorkoutsIndexCompanion
   Value<double?> totalVolumeKg,
   Value<int?> tssScore,
   Value<int?> readinessScore,
+  Value<DateTime?> startTime,
+  Value<DateTime?> dateLogged,
   required DateTime updatedAt,
 });
 typedef $$WorkoutsIndexTableUpdateCompanionBuilder = WorkoutsIndexCompanion
@@ -1555,6 +1822,8 @@ typedef $$WorkoutsIndexTableUpdateCompanionBuilder = WorkoutsIndexCompanion
   Value<double?> totalVolumeKg,
   Value<int?> tssScore,
   Value<int?> readinessScore,
+  Value<DateTime?> startTime,
+  Value<DateTime?> dateLogged,
   Value<DateTime> updatedAt,
 });
 
@@ -1594,6 +1863,12 @@ class $$WorkoutsIndexTableFilterComposer
   ColumnFilters<int> get readinessScore => $composableBuilder(
       column: $table.readinessScore,
       builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get startTime => $composableBuilder(
+      column: $table.startTime, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get dateLogged => $composableBuilder(
+      column: $table.dateLogged, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnFilters(column));
@@ -1637,6 +1912,12 @@ class $$WorkoutsIndexTableOrderingComposer
       column: $table.readinessScore,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<DateTime> get startTime => $composableBuilder(
+      column: $table.startTime, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get dateLogged => $composableBuilder(
+      column: $table.dateLogged, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 }
@@ -1677,6 +1958,12 @@ class $$WorkoutsIndexTableAnnotationComposer
   GeneratedColumn<int> get readinessScore => $composableBuilder(
       column: $table.readinessScore, builder: (column) => column);
 
+  GeneratedColumn<DateTime> get startTime =>
+      $composableBuilder(column: $table.startTime, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get dateLogged => $composableBuilder(
+      column: $table.dateLogged, builder: (column) => column);
+
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 }
@@ -1716,6 +2003,8 @@ class $$WorkoutsIndexTableTableManager extends RootTableManager<
             Value<double?> totalVolumeKg = const Value.absent(),
             Value<int?> tssScore = const Value.absent(),
             Value<int?> readinessScore = const Value.absent(),
+            Value<DateTime?> startTime = const Value.absent(),
+            Value<DateTime?> dateLogged = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
           }) =>
               WorkoutsIndexCompanion(
@@ -1728,6 +2017,8 @@ class $$WorkoutsIndexTableTableManager extends RootTableManager<
             totalVolumeKg: totalVolumeKg,
             tssScore: tssScore,
             readinessScore: readinessScore,
+            startTime: startTime,
+            dateLogged: dateLogged,
             updatedAt: updatedAt,
           ),
           createCompanionCallback: ({
@@ -1740,6 +2031,8 @@ class $$WorkoutsIndexTableTableManager extends RootTableManager<
             Value<double?> totalVolumeKg = const Value.absent(),
             Value<int?> tssScore = const Value.absent(),
             Value<int?> readinessScore = const Value.absent(),
+            Value<DateTime?> startTime = const Value.absent(),
+            Value<DateTime?> dateLogged = const Value.absent(),
             required DateTime updatedAt,
           }) =>
               WorkoutsIndexCompanion.insert(
@@ -1752,6 +2045,8 @@ class $$WorkoutsIndexTableTableManager extends RootTableManager<
             totalVolumeKg: totalVolumeKg,
             tssScore: tssScore,
             readinessScore: readinessScore,
+            startTime: startTime,
+            dateLogged: dateLogged,
             updatedAt: updatedAt,
           ),
           withReferenceMapper: (p0) => p0
@@ -1789,6 +2084,10 @@ typedef $$ActivitiesIndexTableCreateCompanionBuilder = ActivitiesIndexCompanion
   Value<int?> avgHr,
   Value<int?> tssScore,
   Value<String?> gpxFileName,
+  Value<DateTime?> startTime,
+  Value<DateTime?> dateLogged,
+  Value<int?> durationSeconds,
+  Value<double?> rpe,
   required DateTime updatedAt,
 });
 typedef $$ActivitiesIndexTableUpdateCompanionBuilder = ActivitiesIndexCompanion
@@ -1804,6 +2103,10 @@ typedef $$ActivitiesIndexTableUpdateCompanionBuilder = ActivitiesIndexCompanion
   Value<int?> avgHr,
   Value<int?> tssScore,
   Value<String?> gpxFileName,
+  Value<DateTime?> startTime,
+  Value<DateTime?> dateLogged,
+  Value<int?> durationSeconds,
+  Value<double?> rpe,
   Value<DateTime> updatedAt,
 });
 
@@ -1849,6 +2152,19 @@ class $$ActivitiesIndexTableFilterComposer
 
   ColumnFilters<String> get gpxFileName => $composableBuilder(
       column: $table.gpxFileName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get startTime => $composableBuilder(
+      column: $table.startTime, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get dateLogged => $composableBuilder(
+      column: $table.dateLogged, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get durationSeconds => $composableBuilder(
+      column: $table.durationSeconds,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get rpe => $composableBuilder(
+      column: $table.rpe, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnFilters(column));
@@ -1897,6 +2213,19 @@ class $$ActivitiesIndexTableOrderingComposer
   ColumnOrderings<String> get gpxFileName => $composableBuilder(
       column: $table.gpxFileName, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<DateTime> get startTime => $composableBuilder(
+      column: $table.startTime, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get dateLogged => $composableBuilder(
+      column: $table.dateLogged, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get durationSeconds => $composableBuilder(
+      column: $table.durationSeconds,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get rpe => $composableBuilder(
+      column: $table.rpe, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 }
@@ -1943,6 +2272,18 @@ class $$ActivitiesIndexTableAnnotationComposer
   GeneratedColumn<String> get gpxFileName => $composableBuilder(
       column: $table.gpxFileName, builder: (column) => column);
 
+  GeneratedColumn<DateTime> get startTime =>
+      $composableBuilder(column: $table.startTime, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get dateLogged => $composableBuilder(
+      column: $table.dateLogged, builder: (column) => column);
+
+  GeneratedColumn<int> get durationSeconds => $composableBuilder(
+      column: $table.durationSeconds, builder: (column) => column);
+
+  GeneratedColumn<double> get rpe =>
+      $composableBuilder(column: $table.rpe, builder: (column) => column);
+
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 }
@@ -1985,6 +2326,10 @@ class $$ActivitiesIndexTableTableManager extends RootTableManager<
             Value<int?> avgHr = const Value.absent(),
             Value<int?> tssScore = const Value.absent(),
             Value<String?> gpxFileName = const Value.absent(),
+            Value<DateTime?> startTime = const Value.absent(),
+            Value<DateTime?> dateLogged = const Value.absent(),
+            Value<int?> durationSeconds = const Value.absent(),
+            Value<double?> rpe = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
           }) =>
               ActivitiesIndexCompanion(
@@ -1999,6 +2344,10 @@ class $$ActivitiesIndexTableTableManager extends RootTableManager<
             avgHr: avgHr,
             tssScore: tssScore,
             gpxFileName: gpxFileName,
+            startTime: startTime,
+            dateLogged: dateLogged,
+            durationSeconds: durationSeconds,
+            rpe: rpe,
             updatedAt: updatedAt,
           ),
           createCompanionCallback: ({
@@ -2013,6 +2362,10 @@ class $$ActivitiesIndexTableTableManager extends RootTableManager<
             Value<int?> avgHr = const Value.absent(),
             Value<int?> tssScore = const Value.absent(),
             Value<String?> gpxFileName = const Value.absent(),
+            Value<DateTime?> startTime = const Value.absent(),
+            Value<DateTime?> dateLogged = const Value.absent(),
+            Value<int?> durationSeconds = const Value.absent(),
+            Value<double?> rpe = const Value.absent(),
             required DateTime updatedAt,
           }) =>
               ActivitiesIndexCompanion.insert(
@@ -2027,6 +2380,10 @@ class $$ActivitiesIndexTableTableManager extends RootTableManager<
             avgHr: avgHr,
             tssScore: tssScore,
             gpxFileName: gpxFileName,
+            startTime: startTime,
+            dateLogged: dateLogged,
+            durationSeconds: durationSeconds,
+            rpe: rpe,
             updatedAt: updatedAt,
           ),
           withReferenceMapper: (p0) => p0

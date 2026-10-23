@@ -14,6 +14,7 @@ class SessionEntry {
     required this.timeStarted,
     required this.title,
     required this.summary,
+    this.startTime,
   });
 
   final SessionKind kind;
@@ -24,6 +25,21 @@ class SessionEntry {
   final String timeStarted;
   final String title;
   final String summary;
+
+  /// `start_time` from the note (when the session actually happened). Null on
+  /// legacy notes written before Phase 5.
+  final DateTime? startTime;
+
+  /// The instant used to order sessions: [startTime] when present, otherwise
+  /// the legacy [date] + [timeStarted] (`HH:mm`, device-local) combined.
+  DateTime get sortInstant {
+    final s = startTime;
+    if (s != null) return s;
+    final parts = timeStarted.split(':');
+    final h = parts.isNotEmpty ? int.tryParse(parts[0]) ?? 0 : 0;
+    final m = parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0;
+    return DateTime(date.year, date.month, date.day, h, m);
+  }
 
   factory SessionEntry.fromWorkout(WorkoutIndexRow r) {
     final parts = <String>['${r.durationMin.round()} min'];
@@ -38,6 +54,7 @@ class SessionEntry {
       timeStarted: r.timeStarted,
       title: r.split.isEmpty ? 'Workout' : r.split,
       summary: parts.join(' · '),
+      startTime: r.startTime,
     );
   }
 
@@ -54,6 +71,7 @@ class SessionEntry {
       timeStarted: r.timeStarted,
       title: c.isEmpty ? 'Activity' : '${c[0].toUpperCase()}${c.substring(1)}',
       summary: parts.join(' · '),
+      startTime: r.startTime,
     );
   }
 }
