@@ -2,6 +2,8 @@
 ///
 ///  * live: native "my location" dot, follow mode, and a polyline that grows
 ///    as new points arrive (one line per `<trkseg>`, so pauses leave a gap);
+///  * ghost: an optional static reference trace (a saved `.gpx`, see
+///    `GhostRoute`) drawn beneath the live line, in a different colour;
 ///  * static: non-interactive route preview fitted to the track, used by the
 ///    history session card via [ActivityRouteMap].
 ///
@@ -38,6 +40,8 @@ class TrackMapView extends StatefulWidget {
     this.initialTarget,
     this.styleString = kOfflineDarkStyle,
     this.lineColor = '#A78BFA',
+    this.ghostSegments = const [],
+    this.ghostColor = '#60A5FA',
   });
 
   /// Track to draw, one polyline per segment. The list may be mutated in
@@ -61,6 +65,12 @@ class TrackMapView extends StatefulWidget {
   final String styleString;
   final String lineColor;
 
+  /// Reference ("ghost") trace, one polyline per segment. Treated as
+  /// immutable: it is redrawn only when a different list instance is passed,
+  /// so keep the same list for as long as the same ghost is shown.
+  final List<List<TrackPoint>> ghostSegments;
+  final String ghostColor;
+
   @override
   State<TrackMapView> createState() => _TrackMapViewState();
 }
@@ -75,6 +85,13 @@ class _TrackMapViewState extends State<TrackMapView> {
   /// Lines already on the map, aligned with segment index.
   final List<Line?> _lines = [];
   final List<int> _drawnLengths = [];
+
+  /// Ghost lines on the map and the list instance they were drawn from.
+  final List<Line> _ghostLines = [];
+  List<List<TrackPoint>>? _ghostDrawn;
+
+  /// Longest ghost polyline sent to the map; longer ones are thinned out.
+  static const int _maxGhostPoints = 2000;
 
   LatLng get _initialTarget {
     for (final s in widget.segments) {
@@ -114,7 +131,56 @@ class _TrackMapViewState extends State<TrackMapView> {
     }
   }
 
+  /// Draws [TrackMapView.ghostSegments] when they changed. Runs before the
+  /// live lines so the ghost sits underneath. If a ghost appears after the
+  /// live line exists, the live lines are dropped here and redrawn by the
+  /// normal pass so they end up on top again.
+  Future<void> _syncGhost(MapLibreMapController controller) async {
+    final wanted = widget.ghostSegments;
+    if (identical(_ghostDrawn, wanted)) return;
+
+    for (final line in _ghostLines) {
+      await controller.removeLine(line);
+    }
+    _ghostLines.clear();
+
+    for (final segment in wanted) {
+      if (segment.length < 2) continue;
+      final step = (segment.length / _maxGhostPoints).ceil();
+      final geometry = <LatLng>[];
+      for (var i = 0; i < segment.length; i += step < 1 ? 1 : step) {
+        geometry.add(LatLng(segment[i].lat, segment[i].lon));
+      }
+      final last = segment.last;
+      if (geometry.last.latitude != last.lat ||
+          geometry.last.longitude != last.lon) {
+        geometry.add(LatLng(last.lat, last.lon));
+      }
+      _ghostLines.add(
+        await controller.addLine(
+          LineOptions(
+            geometry: geometry,
+            lineColor: widget.ghostColor,
+            lineWidth: 3,
+            lineOpacity: 0.7,
+            lineJoin: 'round',
+          ),
+        ),
+      );
+    }
+    _ghostDrawn = wanted;
+
+    if (_ghostLines.isNotEmpty && _lines.any((l) => l != null)) {
+      for (final line in _lines) {
+        if (line != null) await controller.removeLine(line);
+      }
+      _lines.clear();
+      _drawnLengths.clear();
+    }
+  }
+
   Future<void> _syncOnce(MapLibreMapController controller) async {
+    await _syncGhost(controller);
     final segments = widget.segments;
 
     for (var i = 0; i < segments.length; i++) {

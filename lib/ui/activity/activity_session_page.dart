@@ -6,15 +6,20 @@
 /// "Save Session" writes two files through `FilePersistenceService`:
 ///  * `Tracks/YYYY-MM-DD_HHMM_Route.gpx`  (GPX 1.1, one `<trkseg>` per pause)
 ///  * `Activities/YYYY-MM-DD_HHMM_<category>.md`  (frontmatter + notes, with
-///    `gpx_file: "[[...gpx]]"` pointing at the track)
+///    `gpx_file: "[[...gpx]]"` pointing at the track, followed by a `## Splits`
+///    table for the selected unit)
 /// The Drift index is then refreshed by the re-indexer. The user never sees
 /// or types Markdown here: notes are plain text and are turned into bullets
-/// on save.
+/// on save, and the splits are shown as a native table.
+///
+/// Phase 6: the review screen shows pace and elevation charts and the split
+/// table, and a "ghost route" (any saved `.gpx`) can be chosen before or
+/// during recording to be drawn on the live map as a reference trace.
 library;
 
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Split;
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
@@ -23,16 +28,23 @@ import 'package:path/path.dart' as p;
 
 import '../../models/Models.dart';
 import '../../services/activity_metrics.dart' as metrics;
+import '../../services/ghost_route.dart';
 import '../../services/gpx_service.dart';
 import '../../services/location_ble_service.dart';
 import '../../services/screen_awake.dart';
+import '../../services/splits_markdown.dart';
+import '../../services/splits_service.dart';
+import '../../services/track_profile.dart';
 import '../../services/vault_reindexer_service.dart';
 import '../app_services.dart';
 import '../common/prompt_dialog.dart';
 import '../theme/app_theme.dart';
+import 'ghost_route_sheet.dart';
 import 'hr_sheet.dart';
 import 'manual_activity_page.dart';
 import 'map_view.dart';
+import 'splits_table.dart';
+import 'track_charts.dart';
 
 const List<String> _categorySuggestions = ['Run', 'Ride', 'Walk', 'Hike'];
 
@@ -83,6 +95,14 @@ class _ActivitySessionPageState extends State<ActivitySessionPage> {
   /// Set once the GPX is on disk, so a retry after a failed note write does
   /// not create a second track file.
   String? _savedGpxName;
+
+  /// Reference trace chosen with the ghost button; null when none.
+  GhostRoute? _ghost;
+
+  /// Review-screen analytics, computed once when recording stops.
+  TrackProfile _profile = TrackProfile.empty;
+  final Map<SplitUnit, List<Split>> _splitsByUnit = {};
+  SplitUnit _splitUnit = SplitUnit.km;
 
   @override
   void initState() {
@@ -173,7 +193,34 @@ class _ActivitySessionPageState extends State<ActivitySessionPage> {
     if (!mounted || result == null) return;
     unawaited(ScreenAwake.disable());
     HapticFeedback.mediumImpact();
-    setState(() => _result = result);
+    setState(() {
+      _result = result;
+      _profile = TrackProfile.build(result.segments);
+      _splitsByUnit
+        ..clear()
+        ..addEntries([
+          for (final unit in SplitUnit.values)
+            MapEntry(unit, _reviewSplits(result.segments, unit)),
+        ]);
+    });
+  }
+
+  /// Splits worth showing and saving: at least one full lap. A track shorter
+  /// than one unit would otherwise produce a table with a single partial row.
+  static List<Split> _reviewSplits(
+    List<List<TrackPoint>> segments,
+    SplitUnit unit,
+  ) {
+    final splits = SplitCalculator.compute(segments, unit: unit);
+    return splits.any((s) => !s.partial) ? splits : const [];
+  }
+
+  List<Split> get _splits => _splitsByUnit[_splitUnit] ?? const [];
+
+  Future<void> _pickGhost() async {
+    final pick = await showGhostRoutePicker(context, current: _ghost);
+    if (pick == null || !mounted) return;
+    setState(() => _ghost = pick.route);
   }
 
   Future<void> _discard() async {
@@ -246,7 +293,11 @@ class _ActivitySessionPageState extends State<ActivitySessionPage> {
         gpxFileName: _savedGpxName,
         tags: ['fitness/$_category'],
         title: title,
-        bodyText: _notesAsBullets(_notes.text),
+        bodyText: SplitsMarkdown.append(
+          _notesAsBullets(_notes.text),
+          _splits,
+          _splitUnit,
+        ),
       );
       await services.vault.saveActivity(activity);
 
@@ -369,6 +420,7 @@ class _ActivitySessionPageState extends State<ActivitySessionPage> {
                 ],
               ),
               actions: [
+                if (!stopped) _ghostButton(),
                 if (!stopped) _hrButton(),
                 const SizedBox(width: 8),
               ],
@@ -395,6 +447,18 @@ class _ActivitySessionPageState extends State<ActivitySessionPage> {
           ),
         );
       },
+    );
+  }
+
+  Widget _ghostButton() {
+    final active = _ghost != null;
+    return IconButton(
+      tooltip: active ? 'Ghost route: ${_ghost!.name}' : 'Ghost route',
+      onPressed: _saving ? null : _pickGhost,
+      icon: Icon(
+        Icons.route,
+        color: active ? AppColors.drop : AppColors.textDim,
+      ),
     );
   }
 
@@ -483,8 +547,22 @@ class _ActivitySessionPageState extends State<ActivitySessionPage> {
             showUserLocation: true,
             followUser: true,
             initialTarget: _initialTarget,
+            ghostSegments: _ghost?.segments ?? const [],
           ),
         ),
+        if (_ghost != null)
+          Positioned(
+            left: 12,
+            right: 12,
+            bottom: 12,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: _Pill(
+                'Ghost · ${_ghost!.name} · '
+                '${_ghost!.distanceKm.toStringAsFixed(1)} km',
+              ),
+            ),
+          ),
         if (live && _recorder.lastPosition == null)
           const Positioned(
             top: 12,
@@ -642,6 +720,49 @@ class _ActivitySessionPageState extends State<ActivitySessionPage> {
               style: TextStyle(color: AppColors.warmup),
             ),
           ),
+        if (!_profile.isEmpty) ...[
+          const SizedBox(height: 18),
+          TrackProfileCharts(profile: _profile),
+        ],
+        if (_splits.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              const Text(
+                'Splits',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              ),
+              const Spacer(),
+              SegmentedButton<SplitUnit>(
+                showSelectedIcon: false,
+                style: const ButtonStyle(
+                  visualDensity: VisualDensity.compact,
+                ),
+                segments: const [
+                  ButtonSegment<SplitUnit>(
+                    value: SplitUnit.km,
+                    label: Text('km'),
+                  ),
+                  ButtonSegment<SplitUnit>(
+                    value: SplitUnit.mi,
+                    label: Text('mi'),
+                  ),
+                ],
+                selected: {_splitUnit},
+                onSelectionChanged: _saving
+                    ? null
+                    : (s) => setState(() => _splitUnit = s.first),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SplitsTable(
+            unit: _splitUnit,
+            rows: [
+              for (final s in _splits) SplitRow.fromSplit(s, _splitUnit),
+            ],
+          ),
+        ],
         const SizedBox(height: 14),
         TextField(
           controller: _notes,
@@ -760,6 +881,8 @@ class _Pill extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         child: Text(
           text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontSize: 13, color: AppColors.textDim),
         ),
       ),

@@ -11,13 +11,18 @@ import '../common/session_entries_builder.dart';
 import '../common/session_entry.dart';
 import '../common/session_preview_sheet.dart';
 import '../common/session_tile.dart';
+import '../common/vault_stats_controller.dart';
 import '../theme/app_theme.dart';
 import '../workout/workout_session_page.dart';
 
 enum _HistoryFilter { all, workouts, activities }
 
 class HistoryPage extends StatefulWidget {
-  const HistoryPage({super.key});
+  const HistoryPage({super.key, this.statsController});
+
+  /// When given, the session that holds an all-time personal record shows a
+  /// trophy chip for it.
+  final VaultStatsController? statsController;
 
   @override
   State<HistoryPage> createState() => _HistoryPageState();
@@ -25,6 +30,31 @@ class HistoryPage extends StatefulWidget {
 
 class _HistoryPageState extends State<HistoryPage> {
   _HistoryFilter _filter = _HistoryFilter.all;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.statsController?.addListener(_onStats);
+  }
+
+  @override
+  void didUpdateWidget(HistoryPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.statsController != widget.statsController) {
+      oldWidget.statsController?.removeListener(_onStats);
+      widget.statsController?.addListener(_onStats);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.statsController?.removeListener(_onStats);
+    super.dispose();
+  }
+
+  void _onStats() {
+    if (mounted) setState(() {});
+  }
 
   bool _matches(SessionEntry e) => switch (_filter) {
         _HistoryFilter.all => true,
@@ -102,6 +132,9 @@ class _HistoryPageState extends State<HistoryPage> {
                           return SessionTile(
                             entry: entry,
                             onTap: () => _open(entry),
+                            records: widget.statsController
+                                    ?.recordsByPath[entry.filePath] ??
+                                const [],
                           );
                         },
                       ),

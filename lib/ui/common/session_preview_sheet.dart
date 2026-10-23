@@ -9,7 +9,10 @@ import 'package:path/path.dart' as p;
 
 import '../../models/Models.dart';
 import '../../services/FilePersistenceService.dart';
+import '../../services/splits_markdown.dart';
 import '../activity/map_view.dart';
+import '../activity/splits_table.dart';
+import '../activity/track_charts.dart';
 import '../app_services.dart';
 import '../theme/app_theme.dart';
 import 'session_entry.dart';
@@ -287,6 +290,9 @@ class _ActivityView extends StatelessWidget {
     final a = activity;
     final c = a.category;
     final pace = a.avgPaceMinKm ?? a.computedPaceMinKm;
+    // The split table lives in the note body as Markdown; show it as a native
+    // table and keep only the user's own notes as text.
+    final body = SplitsMarkdown.extract(a.bodyText);
     return _Frame(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -327,10 +333,20 @@ class _ActivityView extends StatelessWidget {
           if (a.gpxFileName != null) ...[
             const SizedBox(height: 12),
             ActivityRouteMap(gpxFileName: a.gpxFileName!),
+            SavedTrackCharts(gpxFileName: a.gpxFileName!),
           ],
-          if (a.bodyText.isNotEmpty) ...[
+          if (body.hasSplits) ...[
+            const SizedBox(height: 16),
+            const Text(
+              'Splits',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+            ),
+            const SizedBox(height: 8),
+            SplitsTable(unit: body.unit!, rows: body.rows),
+          ],
+          if (body.notes.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Text(_stripBullets(a.bodyText),
+            Text(_stripBullets(body.notes),
                 style: const TextStyle(height: 1.4)),
           ],
         ],

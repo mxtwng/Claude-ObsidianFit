@@ -1,7 +1,10 @@
-/// Bottom-navigation shell: Calendar and History tabs, a global "Start"
-/// button on History (gym workout or outdoor GPS activity), and a re-index
-/// whenever the app resumes (directory watching can miss changes made by
-/// Syncthing/rsync).
+/// Bottom-navigation shell: Calendar, History and Dashboard tabs, a global
+/// "Start" button on History (gym workout or outdoor GPS activity), and a
+/// re-index whenever the app resumes (directory watching can miss changes made
+/// by Syncthing/rsync).
+///
+/// The shell owns the [VaultStatsController] so History (record badges) and
+/// Dashboard (weekly totals, records) share one parse of the vault.
 library;
 
 import 'dart:async';
@@ -12,6 +15,8 @@ import '../../services/vault_reindexer_service.dart';
 import '../app_services.dart';
 import '../calendar/calendar_page.dart';
 import '../common/start_session_sheet.dart';
+import '../common/vault_stats_controller.dart';
+import '../dashboard/dashboard_page.dart';
 import '../history/history_page.dart';
 
 class AppShell extends StatefulWidget {
@@ -23,6 +28,7 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   int _index = 0;
+  VaultStatsController? _stats;
 
   @override
   void initState() {
@@ -31,8 +37,17 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // AppScope is only readable from here on, and the services never change
+    // for the life of the app, so the controller is created once.
+    _stats ??= VaultStatsController(AppScope.of(context));
+  }
+
+  @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _stats?.dispose();
     super.dispose();
   }
 
@@ -49,11 +64,16 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final stats = _stats!;
     return Scaffold(
       // IndexedStack keeps each tab's state (month, filter, scroll) alive.
       body: IndexedStack(
         index: _index,
-        children: const [CalendarPage(), HistoryPage()],
+        children: [
+          const CalendarPage(),
+          HistoryPage(statsController: stats),
+          DashboardPage(controller: stats),
+        ],
       ),
       floatingActionButton: _index == 1
           ? FloatingActionButton.extended(
@@ -75,6 +95,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
             icon: Icon(Icons.history),
             selectedIcon: Icon(Icons.history),
             label: 'History',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.insights_outlined),
+            selectedIcon: Icon(Icons.insights),
+            label: 'Dashboard',
           ),
         ],
       ),
