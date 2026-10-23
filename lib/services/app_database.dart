@@ -28,6 +28,11 @@ class WorkoutsIndex extends Table {
   RealColumn get totalVolumeKg => real().nullable()();
   IntColumn get tssScore => integer().nullable()();
   IntColumn get readinessScore => integer().nullable()();
+
+  /// `start_time` / `date_logged` frontmatter (UTC instants). Null on legacy
+  /// notes written before Phase 5.
+  DateTimeColumn get startTime => dateTime().nullable()();
+  DateTimeColumn get dateLogged => dateTime().nullable()();
   DateTimeColumn get updatedAt => dateTime()();
 }
 
@@ -44,6 +49,14 @@ class ActivitiesIndex extends Table {
   IntColumn get avgHr => integer().nullable()();
   IntColumn get tssScore => integer().nullable()();
   TextColumn get gpxFileName => text().nullable()();
+
+  /// Phase 5 metadata. `startTime` / `dateLogged` are UTC instants (null on
+  /// legacy notes); `durationSeconds` and `rpe` are written by the manual
+  /// outdoor logger.
+  DateTimeColumn get startTime => dateTime().nullable()();
+  DateTimeColumn get dateLogged => dateTime().nullable()();
+  IntColumn get durationSeconds => integer().nullable()();
+  RealColumn get rpe => real().nullable()();
   DateTimeColumn get updatedAt => dateTime()();
 }
 
@@ -66,7 +79,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'obsidian_fit_index'));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(

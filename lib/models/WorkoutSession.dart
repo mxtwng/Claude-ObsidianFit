@@ -1,7 +1,8 @@
 import 'ExerciseEntry.dart';
 import 'ModelUtils.dart';
 
-/// A gym session. Mirrors `schemas/workout_schema.md`.
+/// A gym session. Mirrors `schemas/workout_schema.md` plus the Phase 5
+/// extensions in `schemas/workout_schema.phase5.md`.
 ///
 /// Frontmatter <-> model mapping is handled here; the `# Title` and
 /// `## Exercise` body is rendered/parsed by `FilePersistenceService`.
@@ -11,6 +12,8 @@ class WorkoutSession {
     required this.split,
     required this.date,
     required this.timeStarted,
+    this.startTime,
+    this.dateLogged,
     required this.durationMin,
     this.totalVolumeKg,
     this.tssScore,
@@ -31,6 +34,16 @@ class WorkoutSession {
 
   /// `HH:mm` (24h), kept as a string for lossless round trip.
   final String timeStarted;
+
+  /// When the session actually began (UTC, second precision). For a backdated
+  /// entry this is the historical time the user picked. Null on legacy notes,
+  /// which fall back to [date] + [timeStarted]. Serialized as
+  /// `"2026-10-18T11:30:00Z"`.
+  final DateTime? startTime;
+
+  /// When the note was written (UTC, second precision). Set once at creation.
+  /// Null on legacy notes. Serialized like [startTime].
+  final DateTime? dateLogged;
   final double durationMin;
   final double? totalVolumeKg;
   final int? tssScore;
@@ -52,6 +65,8 @@ class WorkoutSession {
     'split',
     'date',
     'time_started',
+    'start_time',
+    'date_logged',
     'duration_min',
     'total_volume_kg',
     'tss_score',
@@ -59,7 +74,8 @@ class WorkoutSession {
     'tags',
   };
 
-  /// Sum of weight x reps. Warmups excluded by default.
+  /// Sum of `load x reps` over all sets. Warmups excluded by default. Pure
+  /// bodyweight and hold sets contribute `0`; only added weight counts.
   double computedVolumeKg({bool includeWarmups = false}) => exercises.fold(
         0.0,
         (sum, e) => sum + e.volumeKg(includeWarmups: includeWarmups),
@@ -72,6 +88,8 @@ class WorkoutSession {
     String? split,
     DateTime? date,
     String? timeStarted,
+    DateTime? startTime,
+    DateTime? dateLogged,
     double? durationMin,
     double? totalVolumeKg,
     int? tssScore,
@@ -87,6 +105,8 @@ class WorkoutSession {
       split: split ?? this.split,
       date: date ?? this.date,
       timeStarted: timeStarted ?? this.timeStarted,
+      startTime: startTime ?? this.startTime,
+      dateLogged: dateLogged ?? this.dateLogged,
       durationMin: durationMin ?? this.durationMin,
       totalVolumeKg: totalVolumeKg ?? this.totalVolumeKg,
       tssScore: tssScore ?? this.tssScore,
@@ -101,12 +121,16 @@ class WorkoutSession {
 
   /// Ordered map matching schema key order. `date` is a [DateTime] so the
   /// codec can emit it as an unquoted YAML date; strings are quoted by the codec.
+  /// `start_time` / `date_logged` are written as UTC `...Z` strings (second
+  /// precision) and omitted when null.
   Map<String, Object?> toFrontmatter() {
     return <String, Object?>{
       'type': type,
       'split': split,
       'date': date,
       'time_started': timeStarted,
+      if (startTime != null) 'start_time': formatUtcTimestamp(startTime!),
+      if (dateLogged != null) 'date_logged': formatUtcTimestamp(dateLogged!),
       'duration_min': durationMin,
       if (totalVolumeKg != null) 'total_volume_kg': totalVolumeKg,
       if (tssScore != null) 'tss_score': tssScore,
@@ -128,6 +152,8 @@ class WorkoutSession {
       split: coerceString(fm['split']) ?? '',
       date: coerceDate(fm['date']) ?? DateTime.fromMillisecondsSinceEpoch(0),
       timeStarted: coerceString(fm['time_started']) ?? '00:00',
+      startTime: coerceUtcTimestamp(fm['start_time']),
+      dateLogged: coerceUtcTimestamp(fm['date_logged']),
       durationMin: coerceDouble(fm['duration_min']) ?? 0,
       totalVolumeKg: coerceDouble(fm['total_volume_kg']),
       tssScore: coerceInt(fm['tss_score']),

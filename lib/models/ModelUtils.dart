@@ -40,6 +40,32 @@ List<String> coerceStringList(Object? v) {
   return [v.toString()];
 }
 
+/// Reads an instant (`start_time`, `date_logged`) as a UTC [DateTime]
+/// truncated to whole seconds, or null when absent or unparsable.
+///
+/// Accepts a [DateTime] or an ISO 8601 string. Strings with an offset
+/// (`+07:00`) are converted to UTC; strings with no zone designator are
+/// treated as device-local time, as [DateTime.tryParse] does. Fractional
+/// seconds are dropped because the schema is second-precision.
+DateTime? coerceUtcTimestamp(Object? v) {
+  if (v == null) return null;
+  final DateTime? parsed =
+      v is DateTime ? v : DateTime.tryParse(v.toString().trim());
+  if (parsed == null) return null;
+  final u = parsed.toUtc();
+  return DateTime.utc(u.year, u.month, u.day, u.hour, u.minute, u.second);
+}
+
+/// `yyyy-MM-ddTHH:mm:ssZ`: UTC, second precision, trailing `Z`, no fractional
+/// part (unlike [DateTime.toIso8601String], which always adds `.000`).
+String formatUtcTimestamp(DateTime d) {
+  final u = d.toUtc();
+  String two(int n) => n.toString().padLeft(2, '0');
+  final y = u.year.toString().padLeft(4, '0');
+  return '$y-${two(u.month)}-${two(u.day)}'
+      'T${two(u.hour)}:${two(u.minute)}:${two(u.second)}Z';
+}
+
 /// `yyyy-MM-dd`
 String formatIsoDate(DateTime d) {
   final y = d.year.toString().padLeft(4, '0');
