@@ -395,12 +395,42 @@ class FilePersistenceService {
     if (await f.exists()) await f.delete();
   }
 
+  /// `.gpx` files in `Tracks/`, newest first (by modified time). Hidden
+  /// files, temp files and Syncthing conflict copies are skipped. Includes
+  /// tracks the user dropped in by hand, such as planned trails.
+  Future<List<File>> listTracks() async {
+    final dir = Directory(p.join(vaultDir.path, tracksFolder));
+    if (!await dir.exists()) return const [];
+    final stamped = <(File, DateTime)>[];
+    await for (final entity in dir.list()) {
+      if (entity is! File) continue;
+      final name = p.basename(entity.path);
+      if (!name.toLowerCase().endsWith('.gpx')) continue;
+      if (name.startsWith('.') || isSyncConflict(name)) continue;
+      try {
+        stamped.add((entity, (await entity.stat()).modified));
+      } on FileSystemException {
+        // Vanished between listing and stat (a sync in progress): skip it.
+      }
+    }
+    stamped.sort((a, b) => b.$2.compareTo(a.$2));
+    return [for (final s in stamped) s.$1];
+  }
+
   /// Reads and parses one note. See [parseAny] for return types.
   Future<Object?> readParsed(File file) async =>
       parseAny(await file.readAsString());
 
+  /// True for a Syncthing conflict copy such as
+  /// `2026-10-22_1800_Push.sync-conflict-20261022-101010-ABCDEFG.md`. These
+  /// are valid notes with valid frontmatter, so indexing them would count a
+  /// session twice.
+  static bool isSyncConflict(String path) =>
+      p.basename(path).toLowerCase().contains('.sync-conflict-');
+
   /// All `.md` files under the vault, skipping hidden folders such as
-  /// `.obsidian` and `.stfolder`. Input for the directory re-indexer.
+  /// `.obsidian` and `.stfolder` and Syncthing conflict copies
+  /// (`*.sync-conflict-*.md`). Input for the directory re-indexer.
   ///
   /// Pass [folders] (vault-relative) to scan only those; missing ones are
   /// skipped. Defaults to the whole vault.
@@ -417,6 +447,7 @@ class FilePersistenceService {
         if (!entity.path.toLowerCase().endsWith('.md')) continue;
         final rel = p.relative(entity.path, from: vaultDir.path);
         if (p.split(rel).any((seg) => seg.startsWith('.'))) continue;
+        if (isSyncConflict(entity.path)) continue;
         out.add(entity);
       }
     }
