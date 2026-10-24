@@ -9,7 +9,7 @@ ObsidianFit is a free, open-source, local-first fitness app built around user-ow
 Guiding principles:
 - **Simple, fast, effective, customizable.** Keep common actions quick; make advanced options available without forcing them into every flow.
 - **Activity-first, not gym-only.** Support strength training, bodyweight/weighted exercise, running, walking, cycling, hiking, martial arts (including TKD/boxing), yoga, stretching/mobility, dance, recreation, and custom activities.
-- **Plan is not reality.** Plans and templates are guidance/staring points, not molds. Editing a template must not rewrite past plans or actual sessions. Targets must not be presented as achieved results.
+- **Plan is not reality.** Plans and templates are guidance/starting points, not molds. Editing a template must not rewrite past plans or actual sessions. Targets must not be presented as achieved results.
 - **Manual and live flows are different.** Users must be able to record completed activities without pretending to be tracking them live.
 - **Offline-first and user-owned.** Markdown is authoritative and human-readable; GPX stores tracks. SQLite/Drift is a disposable/rebuildable cache if retained. Use stable identifiers and recoverable Trash where deletion is supported.
 - No cloud sync service, telemetry, or notifications/reminders enabled by default without explicit approval.
