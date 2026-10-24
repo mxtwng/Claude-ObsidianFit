@@ -1,7 +1,0 @@
-{
-  "elements": {},
-  "imports": [
-    "package:yaml/yaml.dart",
-    "package:obsidian_fit/models/ModelUtils.dart"
-  ]
-}
