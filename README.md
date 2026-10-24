@@ -16,6 +16,8 @@ ObsidianFit puts a native, high-contrast fitness interface over files you own. W
 
 > **Project status:** The six-phase core feature roadmap has been implemented. The project is now in maintenance, testing, and polish; platform-specific features still need real-device verification. See [`docs/CONTEXT.md`](docs/CONTEXT.md) for the current engineering checkpoint and known follow-up work.
 
+> **Demo 1 verification (2026-10-24):** The developer's latest local run reports `flutter analyze` with no issues and `flutter test` with all 288 tests passing. These are local results, not a claim of automated CI coverage or full real-device validation.
+
 ## Why ObsidianFit?
 
 - **Your data stays yours.** Workouts and activities are ordinary files that can be read, backed up, synced, and queried outside the app.
@@ -165,7 +167,7 @@ All six planned feature phases are implemented:
 - [x] **Phase 5 — Multi-discipline and retroactive logging:** weighted bodyweight, holds, plyometrics, mobility-oriented logging, manual activities, backdating.
 - [x] **Phase 6 — Outdoor analytics:** splits, pace/elevation profiles, ghost routes, PR engine, weekly dashboard.
 
-The feature roadmap being complete does not mean every platform behavior is production-validated. Follow [`docs/CONTEXT.md`](docs/CONTEXT.md) for known maintenance tasks and the latest verification status.
+The feature roadmap being complete does not mean every platform behavior is production-validated. The latest maintenance pass also addressed GPX path confinement, Android component exposure, generated-file tracking, and the XML namespace / missing-timestamp edge cases. Follow [`docs/CONTEXT.md`](docs/CONTEXT.md) for the current checkpoint and remaining release-readiness work.
 
 ## Contributing
 
