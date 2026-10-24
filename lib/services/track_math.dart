@@ -10,6 +10,11 @@ library;
 import 'activity_metrics.dart' show haversineMeters;
 import 'gpx_service.dart';
 
+/// True for the timestamp [GpxService.parse] assigns to a `<trkpt>` that has
+/// no `<time>` (the Unix epoch). It is a placeholder, not a real reading, so it
+/// must never be used to measure elapsed time.
+bool _isEpochFallback(DateTime time) => time.millisecondsSinceEpoch == 0;
+
 class CumulativeTrack {
   const CumulativeTrack._(this.points, this.distanceM, this.timeS);
 
@@ -26,8 +31,12 @@ class CumulativeTrack {
       for (final p in segment) {
         if (prev != null) {
           cumD += haversineMeters(prev.lat, prev.lon, p.lat, p.lon);
-          final dt = p.time.difference(prev.time).inMilliseconds / 1000.0;
-          if (dt > 0) cumT += dt;
+          // A step that touches an epoch placeholder would jump between 1970
+          // and the real recording date, so it adds no time.
+          if (!_isEpochFallback(prev.time) && !_isEpochFallback(p.time)) {
+            final dt = p.time.difference(prev.time).inMilliseconds / 1000.0;
+            if (dt > 0) cumT += dt;
+          }
         }
         points.add(p);
         distance.add(cumD);

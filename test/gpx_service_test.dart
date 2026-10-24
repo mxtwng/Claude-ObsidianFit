@@ -116,7 +116,7 @@ void main() {
           [_pt(1, 2, hr: 151)],
         ]),
       );
-      final hr = doc.findAllElements('hr', namespace: _tpxNs).single;
+      final hr = doc.findAllElements('hr', namespaceUri: _tpxNs).single;
       expect(hr.innerText, '151');
       expect(hr.name.prefix, 'gpxtpx');
       expect(hr.parentElement!.name.local, 'TrackPointExtension');
