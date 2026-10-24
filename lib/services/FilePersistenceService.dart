@@ -386,13 +386,39 @@ class FilePersistenceService {
   }
 
   /// Reads a track by bare file name (as stored in `ActivitySession.gpxFileName`).
-  Future<String> readTrack(String fileName) =>
-      File(p.join(vaultDir.path, tracksFolder, fileName)).readAsString();
+  ///
+  /// [fileName] comes from a note, so it is untrusted. It must be a bare
+  /// `*.gpx` name (see [_checkedTrackName]) and the file it resolves to, after
+  /// following symbolic links, must lie inside the resolved `Tracks/` folder.
+  ///
+  /// Throws [FileSystemException] for a rejected name or path (the same type
+  /// a missing track throws, so existing handlers keep working).
+  Future<String> readTrack(String fileName) async {
+    final track = await _confinedTrackFile(fileName);
+    if (track == null) {
+      throw FileSystemException(
+        'Track not found',
+        fileName,
+        const OSError('No such file or directory', 2),
+      );
+    }
+    return File(track.real).readAsString();
+  }
 
   /// Deletes a track by bare file name; ignores a missing file.
+  ///
+  /// Applies the same confinement as [readTrack] and throws
+  /// [FileSystemException] for a rejected name or a track that resolves
+  /// outside `Tracks/`. Nothing outside `Tracks/` is ever deleted.
   Future<void> deleteTrack(String fileName) async {
-    final f = File(p.join(vaultDir.path, tracksFolder, fileName));
-    if (await f.exists()) await f.delete();
+    final track = await _confinedTrackFile(fileName);
+    if (track == null) return;
+    if (await FileSystemEntity.type(track.real) != FileSystemEntityType.file) {
+      return;
+    }
+    // Delete the in-folder path, not the resolved one: if it is a link, only
+    // the link is removed and its target is never touched.
+    await File(track.lexical).delete();
   }
 
   /// `.gpx` files in `Tracks/`, newest first (by modified time). Hidden
@@ -456,6 +482,64 @@ class FilePersistenceService {
   }
 
   // ---- internals ------------------------------------------------------------
+
+  static final RegExp _driveLetterPrefix = RegExp(r'^[A-Za-z]:');
+
+  /// Validates a track file name taken from a note and returns it unchanged.
+  ///
+  /// Accepts only a bare `<name>.gpx` (extension case-insensitive). Rejects
+  /// empty or blank names, either path separator (`/` or `\`, which covers
+  /// absolute and nested paths and `..` traversal), a Windows drive prefix
+  /// such as `C:`, NUL characters, and any other extension. `.` and `..` fail
+  /// the extension check, so they need no separate rule.
+  static String _checkedTrackName(String fileName) {
+    final invalid = fileName.trim().isEmpty ||
+        fileName.contains('/') ||
+        fileName.contains('\\') ||
+        fileName.contains('\u0000') ||
+        _driveLetterPrefix.hasMatch(fileName) ||
+        fileName.length <= '.gpx'.length ||
+        !fileName.toLowerCase().endsWith('.gpx');
+    if (invalid) {
+      throw FileSystemException('Invalid track file name', fileName);
+    }
+    return fileName;
+  }
+
+  /// Resolves [fileName] inside `Tracks/` and proves it cannot escape.
+  ///
+  /// Returns the in-folder path (`lexical`) and the fully resolved path
+  /// (`real`, symbolic links followed), or null when `Tracks/` or the track
+  /// does not exist (a dangling link counts as missing). Throws
+  /// [FileSystemException] for an invalid name, or when the resolved track is
+  /// not strictly inside the resolved `Tracks/` directory. Both sides are
+  /// resolved, so a `Tracks/` folder that is itself a link still works.
+  ///
+  /// Callers should use `real` to read. A check followed by IO can still race
+  /// with another process swapping the file; this guards against hostile note
+  /// content, not against a hostile process on the device.
+  Future<({String lexical, String real})?> _confinedTrackFile(
+    String fileName,
+  ) async {
+    final name = _checkedTrackName(fileName);
+    final tracksPath = p.join(vaultDir.path, tracksFolder);
+    final lexical = p.join(tracksPath, name);
+    final String realTracks;
+    final String real;
+    try {
+      realTracks = await Directory(tracksPath).resolveSymbolicLinks();
+      real = await File(lexical).resolveSymbolicLinks();
+    } on FileSystemException {
+      return null;
+    }
+    if (!p.isWithin(realTracks, real)) {
+      throw FileSystemException(
+        'Track path resolves outside the Tracks folder',
+        fileName,
+      );
+    }
+    return (lexical: lexical, real: real);
+  }
 
   /// Write to a temp file in the same directory, then rename, so a sync tool
   /// or a crash never sees a half-written note.
