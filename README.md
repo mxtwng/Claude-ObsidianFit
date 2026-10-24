@@ -30,8 +30,8 @@ ObsidianFit puts a native, high-contrast fitness interface over files you own. W
 ### Gym logging
 
 - Workout sessions organized into exercises and sets.
-- Set logging with optional RPE and specialized effort measurements. Legacy set markers exist in the current implementation; their role is being reviewed as part of V2.
-- Set logging for weight, reps, and RPE.
+- Legacy set markers exist in the current implementation; their role is being reviewed as part of V2.
+- Record load, reps, and optional RPE where applicable.
 - Weighted-bodyweight sets (`BW+Xkg`) with only the external added load counted toward tonnage.
 - Timed isometric holds, including planks and static skills.
 - Plyometric fields for box height and contact time.
