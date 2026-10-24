@@ -14,7 +14,7 @@
 
 ObsidianFit puts a native, high-contrast fitness interface over files you own. Workout history is stored as Markdown with YAML frontmatter, and GPS tracks are stored as GPX 1.1 XML. The app uses a Drift SQLite database as a rebuildable read-cache rather than making a proprietary database the source of truth.
 
-> **Project status:** The six-phase core feature roadmap has been implemented. The project is now in maintenance, testing, and polish; platform-specific features still need real-device verification. See [`docs/CONTEXT.md`](docs/CONTEXT.md) for the current engineering checkpoint and known follow-up work.
+> **Project status:** The six-phase Demo 1 feature roadmap has been implemented, and the project is moving into V2 refinement. Existing behavior and UI are a starting point, not automatically the final design. See [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) for implementation priorities and [`docs/CONTEXT.md`](docs/CONTEXT.md) for engineering context.
 
 > **Demo 1 verification (2026-10-24):** The developer's latest local run reports `flutter analyze` with no issues and `flutter test` with all 288 tests passing. These are local results, not a claim of automated CI coverage or full real-device validation.
 
@@ -30,8 +30,8 @@ ObsidianFit puts a native, high-contrast fitness interface over files you own. W
 ### Gym logging
 
 - Workout sessions organized into exercises and sets.
-- Set types: warmup (`W`), normal (`N`), drop (`D`), and failure (`F`).
-- Set logging for weight, reps, and RPE.
+- Legacy set markers exist in the current implementation; their role is being reviewed as part of V2.
+- Record load, reps, and optional RPE where applicable.
 - Weighted-bodyweight sets (`BW+Xkg`) with only the external added load counted toward tonnage.
 - Timed isometric holds, including planks and static skills.
 - Plyometric fields for box height and contact time.
@@ -167,7 +167,7 @@ All six planned feature phases are implemented:
 - [x] **Phase 5 — Multi-discipline and retroactive logging:** weighted bodyweight, holds, plyometrics, mobility-oriented logging, manual activities, backdating.
 - [x] **Phase 6 — Outdoor analytics:** splits, pace/elevation profiles, ghost routes, PR engine, weekly dashboard.
 
-The feature roadmap being complete does not mean every platform behavior is production-validated. The latest maintenance pass also addressed GPX path confinement, Android component exposure, generated-file tracking, and the XML namespace / missing-timestamp edge cases. Follow [`docs/CONTEXT.md`](docs/CONTEXT.md) for the current checkpoint and remaining release-readiness work.
+The feature roadmap being complete does not mean every platform behavior is production-validated or that the existing UI is final. V2 refinement prioritizes correctness and regression prevention while improving manual/live logging, activity-first workflows, and separation between plans and actual sessions. Follow [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) for requirements and [`docs/CONTEXT.md`](docs/CONTEXT.md) for the current engineering checkpoint.
 
 ## Contributing
 
