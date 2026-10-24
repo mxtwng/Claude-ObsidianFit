@@ -86,12 +86,25 @@
         <!-- flutter_background_service: the service's foregroundServiceType MUST
              match AndroidConfiguration.foregroundServiceTypes in
              lib/services/location_ble_service.dart (location + connectedDevice).
-             tools:replace overrides any type the plugin's own manifest declares. -->
+             tools:replace overrides any type the plugin's own manifest declares.
+             Not exported: only this app may start or bind the service. -->
         <service
             android:name="id.flutter.flutter_background_service.BackgroundService"
             android:foregroundServiceType="location|connectedDevice"
-            android:exported="true"
+            android:exported="false"
             tools:replace="android:exported,android:foregroundServiceType" />
+
+        <!-- Watchdog restarts the service internally; no outside app needs it. -->
+        <receiver
+            android:name="id.flutter.flutter_background_service.WatchdogReceiver"
+            android:exported="false"
+            tools:replace="android:exported" />
+
+        <!-- Remove the plugin's boot receiver so the service does not
+             auto-start after a device reboot. -->
+        <receiver
+            android:name="id.flutter.flutter_background_service.BootReceiver"
+            tools:node="remove" />
 
         <meta-data
             android:name="flutterEmbedding"
