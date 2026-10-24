@@ -1,20 +1,24 @@
 # ObsidianFit: Technical Master Plan and Session Context
 
-_Last updated: 2026-10-23. This file records the project checkpoint reported by the developer. Always treat current local disk and Git state as authoritative._
+_Last updated: 2026-10-24. This file records the latest developer-reported checkpoint. Treat current local disk and Git state as authoritative; test results below are the latest results reported for the local checkout, not CI results._
 
 ## 1. Project status
 
-ObsidianFit is a local-first Flutter fitness app. **All six planned feature phases have been implemented.** Work has moved from roadmap implementation into maintenance, verification, repository cleanup, documentation, and iterative bug fixing. Do not restart Phase 5 or Phase 6 or describe them as planned work.
+ObsidianFit is a local-first Flutter fitness app. **All six planned feature phases are implemented, and Demo 1's core functionality, persistence/cache architecture, and primary UI are in place.** The project is now at a maintenance and refinement checkpoint—not at the start of the feature roadmap. Treat the app as a working first demo, not as fully production-validated software.
 
 - Repository: https://github.com/mxtwng/Claude-ObsidianFit
 - Package name: `obsidian_fit` (from `pubspec.yaml`).
 - Primary branch: `main`.
-- Feature milestone commit reported by the developer: `4d5ccaf` (`feat(phase6): complete phase 6 outdoor suite, PR engine, and tests`). A later `.gitignore` update was discussed and reportedly committed/pushed, but its commit hash was not provided; check `git log -1` for actual HEAD.
-- Latest standalone test result reported by the developer: `flutter test` passed with `+200: All tests passed!`.
-- Latest analyzer result reported by the developer: a deprecation info in `test/gpx_service_test.dart` concerning the XML `namespace` parameter. `flutter analyze` exited non-zero, so do **not** describe static analysis as clean until this is resolved and rechecked.
-- `test/phase6_edge_cases_test.dart` exists on public `main` and contains test groups for PRs, splits, track profiles, weekly statistics, and vault-stat controller behavior. It previously had 37 issues because an earlier generated version guessed imports. The import paths were subsequently corrected.
+- Latest reported repository HEAD: `f185a96` (`docs: sync reference Android manifest with security export restrictions`).
+- Latest reported Git state: `main` is clean and synchronized with `origin/main`.
+- Latest developer-run validation (2026-10-24): `flutter analyze` reported **No issues found**; `flutter test` reported **288 tests passed**. These are local results and do not establish CI coverage or real-device correctness.
+- Recent maintenance commits reported on `main`: `257a3c6` (XML namespace API and missing-GPX-time fallback), `2599024` (GPX path confinement), `9803cae` (stop tracking generated Flutter build files), `049a98b` (restrict background-service component exports/remove boot receiver), and `f185a96` (sync reference Android manifest).
+- Repository cleanup removed generated `.dart_tool/` and `build/` files from Git's index while preserving local copies.
+- Future commits should use the GitHub-provided noreply email configured in the local repository. Historical commit metadata may still contain an older email; changing the local setting does not rewrite old commits.
 
-Do not use a static test-count badge as a substitute for fresh verification. The `200+` result is a reported local test result, not a continuously refreshed CI status.
+**Security checkpoint:** a focused static-review/maintenance pass addressed the reported GPX track path-confinement issue and Android background-service component exposure. This is not a full penetration test or a guarantee that every platform/plugin interaction is secure. GitHub security scanning is enabled according to the developer; review new alerts in GitHub and revoke any genuine exposed credential at its issuing service.
+
+**Release caveat:** platform-specific behavior still needs real-device verification. Before public release, review Android permission policy/necessity, foreground/background tracking and BLE behavior, and release signing. Do not describe Demo 1 as release-ready solely because analysis and unit tests pass.
 
 ## 2. Architecture
 
@@ -79,50 +83,46 @@ These are entry points, not a complete API specification. If a change depends on
 - Personal-record engine, including estimated 1RM bench, max plank, longest run, and fastest 5K.
 - Weekly multi-sport dashboard and edge-case tests.
 
-## 4. Known maintenance items
+## 4. Current maintenance and release-readiness checkpoint
 
-### A. Fix the XML namespace deprecation precisely
+The following previously open maintenance items are reported complete and were committed to `main`:
 
-The latest reported analyzer message was similar to:
+### A. XML namespace API and missing GPX timestamps — completed
 
-```text
-'namespace' is deprecated and shouldn't be used. Use 'namespaceUri' instead.
-test/gpx_service_test.dart
-```
+- Updated the deprecated XML namespace argument in `test/gpx_service_test.dart` to the current API.
+- Fixed track-math handling for GPX files without `<time>` tags so missing timestamps do not produce an extreme epoch-based duration.
+- Latest local validation: `flutter analyze` reported no issues; `flutter test` passed all 288 tests.
 
-The query uses a named argument like `namespace: _tpxNs`. The earlier suggested command
+### B. GPX track path confinement — completed
 
-```bash
-sed -i 's/\.namespace\b/\.namespaceUri/g' test/gpx_service_test.dart
-```
+- `FilePersistenceService` now validates GPX track filenames and confines read/delete operations to the intended tracks directory, including traversal/absolute-path and outside-directory symlink cases.
+- Added regression coverage in `test/file_persistence_track_path_test.dart`.
+- Treat Markdown and synced files as untrusted input; maintain the confinement checks in future persistence changes.
 
-does **not** match `namespace:` (there is no dot before the argument), so it would not fix that occurrence. Inspect only the exact line and confirm the installed `xml` package API before changing to `namespaceUri:`. Then run `flutter analyze` and `flutter test` separately. Record both results.
+### C. Generated build artifacts — completed
 
-### B. Check whether generated build files are tracked
+- Generated `.dart_tool/` and `build/` files were removed from Git's index without deleting the local generated files.
+- Keep ignore rules in place; do not commit generated build output.
 
-The public repository root has listed `.dart_tool/` and `build/`, even though `.gitignore` includes ignore rules. Ignore rules do not untrack files already committed.
+### D. Android background components — updated, device validation still required
 
-First check:
+- `BackgroundService` and `WatchdogReceiver` are declared non-exported in `android/app/src/main/AndroidManifest.xml`.
+- The plugin's `BootReceiver` is removed from the merged manifest using the manifest-merger removal directive.
+- `docs/platform/AndroidManifest.reference.xml` is synchronized with the app manifest.
+- The manifest change has passed the reported repository checks, but confirm the merged manifest and test tracking/service startup and shutdown on a real Android device. Removing boot-start behavior is intentional in the current configuration.
 
-```bash
-git ls-files .dart_tool build
-```
+### E. Git identity privacy — current setting updated
 
-If this prints tracked paths, review the output, then untrack the generated directories without deleting local copies:
+- Local Git email is configured to use the GitHub noreply address for future commits.
+- This does not remove an email from already-created commit objects. Consider history rewriting only if the user explicitly decides it is necessary; it disrupts collaborators and is not required for routine development.
 
-```bash
-git rm -r --cached .dart_tool build
-```
+### F. Suggested next engineering tasks (not blockers to Demo 1)
 
-Review `git status` and the staged diff before committing. Do not run `git rm` if no tracked paths were reported. Do not routinely use `git restore .` because that can discard unrelated developer changes.
-
-### C. Documentation status
-
-The earlier README showed a stale `51 passing` test badge and left Phases 5 and 6 unchecked. It has now been updated to describe the completed six-phase feature set, use the actual clone URL, and avoid a fixed test-count badge. Keep validation claims honest: the last reported standalone test run passed 200+ tests, while analysis still had the namespace deprecation info.
-
-### D. CI workflow
-
-A `.github/workflows/flutter.yml` workflow was not found at the checked path. GitHub Actions running `flutter analyze` and `flutter test` on pushes and pull requests is a reasonable next improvement after local checks are clean; it is not a prerequisite for saying the six feature phases are implemented.
+1. Perform a focused real-device acceptance pass for Android: fresh install/permissions, GPS start-pause-resume-stop, screen-off/background tracking, notification behavior, BLE heart-rate connection/reconnection, and app/service lifecycle.
+2. Exercise data integrity end-to-end: create/edit/delete workout and activity notes, restart the app, rebuild the Drift cache from Markdown/GPX, and verify synced/conflict copies do not become duplicate records.
+3. Add a lightweight GitHub Actions workflow for `flutter analyze` and `flutter test` on pushes and pull requests if desired. This was a recommendation, not a currently verified repository feature.
+4. Before release, review Android permission scope and store-policy implications, signing configuration, dependency updates, and the exact supported platform matrix.
+5. After these checks, prioritize refinement from observed bugs/usability friction rather than speculative rewrites. Keep the scope small and preserve the flat-file source-of-truth model.
 
 ## 5. Multi-instance workflow and read-budget rules
 
@@ -156,7 +156,9 @@ Run analyzer and tests as separate commands during diagnosis so an analyzer's no
 
 ## 6. Immediate priorities
 
-1. Resolve the XML namespace deprecation in `test/gpx_service_test.dart` and independently rerun analysis and tests.
-2. Check whether `.dart_tool/` and `build/` are tracked; if so, untrack them in a focused housekeeping commit.
-3. Consider adding the GitHub Actions workflow after the current state is green.
-4. Continue with the user's reported app/UX bugs one issue at a time. **Do not reopen Phases 1–6 as unfinished roadmap work.**
+1. **Real-device acceptance testing**, especially Android background GPS/service lifecycle and BLE; unit tests do not cover all OS/vendor behavior.
+2. **End-to-end data-integrity testing** across Markdown/GPX persistence, cache rebuild, app restart, and optional file sync.
+3. **Release-readiness review** for permissions, signing, dependency/security alerts, and supported platforms before distribution.
+4. Optionally add CI for `flutter analyze` and `flutter test`, then focus on concrete UI/UX and functionality feedback from Demo 1.
+
+Do not reopen Phases 1–6 as unfinished roadmap work. Keep changes incremental, preserve user data, and update this file after meaningful milestones with the exact changed files, validation actually run, remaining issues, and commit hash when known.
