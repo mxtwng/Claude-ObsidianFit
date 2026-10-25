@@ -16,16 +16,16 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
   }
 
   Future<void> addExercise(WidgetTester tester) async {
     await tester.tap(find.text('Add exercise'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
 
     await tester.enterText(find.byType(TextField), 'Deadlift');
     await tester.tap(find.text('OK'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
   }
 
   Future<void> toggleFirstSet(WidgetTester tester) async {
