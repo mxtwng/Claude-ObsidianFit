@@ -273,6 +273,48 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
     );
   }
 
+  /// Soft warning for checked live sets saved with no weight. Returns true
+  /// only for "Save anyway"; "Go back and fix" or tapping outside the dialog
+  /// both return false and leave the workout open and unchanged.
+  Future<bool> _confirmSaveWithoutWeight(List<DraftSetIssue> sets) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('No weight on some sets'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'These checked sets have no weight and Bodyweight is off. '
+                'Turn on Bodyweight for no external load.',
+                style: TextStyle(color: AppColors.textDim),
+              ),
+              const SizedBox(height: 12),
+              for (final s in sets)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text('• ${s.exercise} · Set ${s.setNumber}'),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Go back and fix'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Save anyway'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
   Future<void> _finish() async {
     if (_saving) return;
 
@@ -306,6 +348,14 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
         confirmLabel: 'Finish',
       );
       if (!go || !mounted) return;
+    }
+
+    // Live sessions only: warn once about ticked sets with no weight, as the
+    // last gate before writing. Manual entries were validated above.
+    final unweighted = _draft.zeroLoadWarnings();
+    if (unweighted.isNotEmpty) {
+      final saveAnyway = await _confirmSaveWithoutWeight(unweighted);
+      if (!saveAnyway || !mounted) return;
     }
 
     final services = AppScope.of(context);

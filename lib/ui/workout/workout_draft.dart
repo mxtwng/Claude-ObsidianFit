@@ -82,6 +82,11 @@ class DraftSet {
   /// Tonnage of this set; holds contribute `0`.
   double get volumeKg => isHold ? 0 : loadKg * reps;
 
+  /// True for an external-load set with no weight entered (Bodyweight off,
+  /// [weightKg] 0). Bodyweight sets, `BW+0kg` and bodyweight holds are never
+  /// flagged: their load is [extraWeightKg], where `0` is valid.
+  bool get hasNoExternalLoad => !isBodyweight && weightKg == 0;
+
   /// Why this set cannot be saved as a recorded result; empty when it can.
   ///
   /// The rules follow the set's modality
@@ -230,6 +235,28 @@ class WorkoutDraft extends ChangeNotifier {
               exercise: _clean(e.name),
               setNumber: i + 1,
               message: message,
+            ),
+    ];
+  }
+
+  /// Soft warning for a live draft: ticked sets that would be saved as an
+  /// external-load lift with no weight entered ([DraftSet.hasNoExternalLoad]).
+  ///
+  /// Only sets [includes] selects count, so unticked rows are never reported.
+  /// Empty for a draft opened as a manual entry, which is hard-validated by
+  /// [validateForSave] instead. Nothing is changed or converted: the user
+  /// decides whether to fix the rows or save them as they are.
+  /// [DraftSetIssue.setNumber] is the row number shown in the logger.
+  List<DraftSetIssue> zeroLoadWarnings() {
+    if (recordsAllSets) return const [];
+    return [
+      for (final e in exercises)
+        for (var i = 0; i < e.sets.length; i++)
+          if (includes(e.sets[i]) && e.sets[i].hasNoExternalLoad)
+            DraftSetIssue(
+              exercise: _clean(e.name),
+              setNumber: i + 1,
+              message: 'no weight entered',
             ),
     ];
   }
