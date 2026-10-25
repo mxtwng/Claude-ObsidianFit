@@ -143,10 +143,15 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
 
   void _toggleDone(DraftSet set) {
     _draft.mutate(() => set.done = !set.done);
-    if (set.done) {
-      HapticFeedback.mediumImpact();
-      _rest.start(RestDefaults.forSet(set.type, set.rpe));
-    }
+    if (!set.done) return;
+
+    HapticFeedback.mediumImpact();
+
+    // Historical/manual entry must not trigger live rest timing.
+    // Read isManual on every toggle so backdating takes effect immediately.
+    if (_draft.isManual) return;
+
+    _rest.start(RestDefaults.forSet(set.type, set.rpe));
   }
 
   Future<void> _showPlates(double kg) =>
