@@ -284,15 +284,20 @@ class _SetRowState extends State<SetRow> {
               Expanded(child: _loadStepper()),
               const SizedBox(width: 6),
               Expanded(child: _amountStepper()),
-              Checkbox(
-                value: done,
-                activeColor: AppColors.done,
-                checkColor: Colors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
+              // A manual (historical) entry has no completion step: every
+              // row is a recorded set. Delete a row from the set-type menu.
+              if (widget.draft.recordsAllSets)
+                const SizedBox(width: 8)
+              else
+                Checkbox(
+                  value: done,
+                  activeColor: AppColors.done,
+                  checkColor: Colors.black,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  onChanged: (_) => widget.onToggleDone(),
                 ),
-                onChanged: (_) => widget.onToggleDone(),
-              ),
             ],
           ),
           Padding(

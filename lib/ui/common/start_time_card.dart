@@ -3,6 +3,10 @@
 ///
 /// Rules (see `schemas/workout_schema.phase5.md`, section 1):
 ///  * a session cannot start in the future, so picks are clamped to "now";
+///  * a live session can only be moved *earlier*: it passes its real start as
+///    `latest`, so a later pick is clamped back to that start (a no-op)
+///    instead of silently becoming a backdated session that starts after the
+///    workout really began;
 ///  * values have minute precision (the note stores `time_started` as
 ///    `HH:mm`; `start_time` is written to the second but a picked time has
 ///    zero seconds);
@@ -28,9 +32,41 @@ DateTime defaultRetroStart(DateTime day) {
   return candidate.isAfter(now) ? truncateToMinute(now) : candidate;
 }
 
+/// A start pick after [clampStartPick] has limited it.
+class ClampedStart {
+  const ClampedStart(this.value, {required this.wasClamped});
+
+  /// Minute-precision local start.
+  final DateTime value;
+
+  /// True when the pick was later than allowed and [value] is the limit.
+  final bool wasClamped;
+}
+
+/// Limits a picked start to the latest allowed one, at minute precision.
+///
+/// The limit is [now] or, when given and earlier, [latest]. A live session
+/// passes its real start as [latest]: clamping its picks to [now] instead
+/// would give a start *later* than the one the workout really had.
+ClampedStart clampStartPick({
+  required DateTime picked,
+  required DateTime now,
+  DateTime? latest,
+}) {
+  var limit = truncateToMinute(now);
+  if (latest != null) {
+    final cap = truncateToMinute(latest);
+    if (cap.isBefore(limit)) limit = cap;
+  }
+  final value = truncateToMinute(picked);
+  return value.isAfter(limit)
+      ? ClampedStart(limit, wasClamped: true)
+      : ClampedStart(value, wasClamped: false);
+}
+
 /// Card with a date button and a time button. [onChanged] receives the new
-/// local start (minute precision, never in the future) and is not called when
-/// the pick leaves the minute unchanged.
+/// local start (minute precision, never in the future, never after [latest])
+/// and is not called when the pick leaves the minute unchanged.
 class StartTimeCard extends StatelessWidget {
   const StartTimeCard({
     super.key,
@@ -40,6 +76,7 @@ class StartTimeCard extends StatelessWidget {
     this.hint,
     this.footer,
     this.enabled = true,
+    this.latest,
   });
 
   final DateTime start;
@@ -53,13 +90,19 @@ class StartTimeCard extends StatelessWidget {
   final Widget? footer;
   final bool enabled;
 
+  /// Latest start a pick may produce, when earlier than now. Pass a live
+  /// session's real start so it can only be moved earlier. Null: now.
+  final DateTime? latest;
+
   Future<void> _pickDate(BuildContext context) async {
     final now = DateTime.now();
+    final cap = latest;
+    final limit = cap != null && cap.isBefore(now) ? cap : now;
     final picked = await showDatePicker(
       context: context,
-      initialDate: start.isAfter(now) ? now : start,
+      initialDate: start.isAfter(limit) ? limit : start,
       firstDate: DateTime(2000),
-      lastDate: now,
+      lastDate: limit,
       helpText: 'Session date',
     );
     if (picked == null || !context.mounted) return;
@@ -87,18 +130,25 @@ class StartTimeCard extends StatelessWidget {
   }
 
   void _emit(BuildContext context, DateTime next) {
-    final now = DateTime.now();
-    var value = truncateToMinute(next);
-    if (value.isAfter(now)) {
-      value = truncateToMinute(now);
+    final pick = clampStartPick(
+      picked: next,
+      now: DateTime.now(),
+      latest: latest,
+    );
+    if (pick.wasClamped) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("A session can't start in the future. Set to now."),
+        SnackBar(
+          content: Text(
+            latest == null
+                ? "A session can't start in the future. Set to now."
+                : "A live session can't start later than it did. "
+                    'Pick an earlier time to backdate it.',
+          ),
         ),
       );
     }
-    if (value == truncateToMinute(start)) return;
-    onChanged(value);
+    if (pick.value == truncateToMinute(start)) return;
+    onChanged(pick.value);
   }
 
   @override

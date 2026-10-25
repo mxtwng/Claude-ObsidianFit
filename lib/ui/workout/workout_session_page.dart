@@ -168,6 +168,24 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
     _draft.addExercise(name);
   }
 
+  /// The session start was changed from the date/time card.
+  ///
+  /// Moving a live session into the past makes it a backdated one, so what
+  /// only a live session needs is released at once: the rest countdown it may
+  /// have started is stopped and its bar hidden, and the screen wake lock is
+  /// dropped (nothing re-takes it: only [initState] enables it, and only for a
+  /// live session). A session that is already backdated has neither, so
+  /// adjusting its timestamp leaves them alone. A start the draft refuses (a
+  /// live session cannot move later) changes nothing.
+  void _onStartChanged(DateTime start) {
+    final wasLive = !_draft.isManual;
+    if (!_draft.setStart(start)) return;
+    if (!wasLive) return;
+    unawaited(ScreenAwake.disable());
+    _rest.skip();
+    setState(() => _restExpanded = false);
+  }
+
   Future<void> _rename() async {
     final name = await promptText(
       context,
@@ -221,17 +239,61 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
     if (leave && mounted) Navigator.of(context).pop(false);
   }
 
+  Future<void> _showIssues(List<DraftSetIssue> issues) {
+    return showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Fix these sets'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Correct each set, or delete it from its set menu (tap the '
+                'set number).',
+                style: TextStyle(color: AppColors.textDim),
+              ),
+              const SizedBox(height: 12),
+              for (final issue in issues)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text('• $issue'),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _finish() async {
     if (_saving) return;
 
     if (_draft.completedSets == 0) {
+      final manual = _draft.recordsAllSets;
       final discard = await _confirm(
-        title: 'No sets completed',
-        message: 'Only checked-off sets are saved. Discard this workout?',
+        title: manual ? 'No sets logged' : 'No sets completed',
+        message: manual
+            ? 'Add at least one set to save. Discard this workout?'
+            : 'Only checked-off sets are saved. Discard this workout?',
         confirmLabel: 'Discard',
         destructive: true,
       );
       if (discard && mounted) Navigator.of(context).pop(false);
+      return;
+    }
+
+    // Manual entries save every row, so each one must be a real result.
+    final issues = _draft.validateForSave();
+    if (issues.isNotEmpty) {
+      await _showIssues(issues);
       return;
     }
 
@@ -277,12 +339,13 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
 
   // ---- derived --------------------------------------------------------------
 
-  /// Live volume of checked-off, non-warmup sets (matches the saved value).
+  /// Live volume of the sets that will be saved, warmups excluded (matches
+  /// the saved value).
   double _liveVolumeKg() {
     var total = 0.0;
     for (final e in _draft.exercises) {
       for (final s in e.sets) {
-        if (s.done && s.type != SetType.warmup) total += s.volumeKg;
+        if (_draft.includes(s) && s.type != SetType.warmup) total += s.volumeKg;
       }
     }
     return total;
@@ -383,7 +446,9 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
                     start: _draft.startedAt,
                     title:
                         _draft.isManual ? 'Session time' : 'Backdate session',
-                    onChanged: _draft.setStart,
+                    onChanged: _onStartChanged,
+                    // A live session can only be moved earlier than it began.
+                    latest: _draft.isManual ? null : _draft.startedAt,
                     hint: _draft.isManual
                         ? null
                         : 'Pick a different date or time to log this session '
@@ -410,7 +475,10 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
                       _draft.isManual ? _draft.manualDurationMin : null,
                   volumeKg: _liveVolumeKg(),
                   done: _draft.completedSets,
-                  total: _draft.completedSets + _draft.pendingSets,
+                  // A manual entry has no ticked/unticked split to show.
+                  total: _draft.recordsAllSets
+                      ? null
+                      : _draft.completedSets + _draft.pendingSets,
                 ),
                 const SizedBox(height: 14),
                 if (_draft.exercises.isEmpty) const _EmptyState(),
@@ -512,7 +580,7 @@ class _StatsBar extends StatelessWidget {
   final int? manualMinutes;
   final double volumeKg;
   final int done;
-  final int total;
+  final int? total;
 
   @override
   Widget build(BuildContext context) {
@@ -542,7 +610,10 @@ class _StatsBar extends StatelessWidget {
           ),
           _Stat(
             label: 'Sets',
-            child: Text('$done/$total', style: valueStyle),
+            child: Text(
+              total == null ? '$done' : '$done/$total',
+              style: valueStyle,
+            ),
           ),
         ],
       ),
