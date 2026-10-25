@@ -37,9 +37,7 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('manual workout set completion never starts rest timer', (
-    tester,
-  ) async {
+  testWidgets('manual workout set completion never starts rest timer', (tester) async {
     await openSession(
       tester,
       backdateTo: DateTime(2026, 10, 18, 18, 30),
@@ -55,9 +53,7 @@ void main() {
     expect(find.byTooltip('Skip rest'), findsNothing);
   });
 
-  testWidgets('live workout set completion still starts rest timer', (
-    tester,
-  ) async {
+  testWidgets('live workout set completion still starts rest timer', (tester) async {
     await openSession(tester);
     await addExercise(tester);
 
