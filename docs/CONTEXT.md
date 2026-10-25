@@ -9,8 +9,8 @@ ObsidianFit is moving from the Demo 1 maintenance checkpoint into V2 refinement.
 - Repository: https://github.com/mxtwng/Claude-ObsidianFit
 - Main branch: `main`.
 - The private, full product masterplan is intentionally not stored in this repository. This file and the implementation plan contain the information needed for implementation work.
-- The last reported local validation at the Demo 1 checkpoint (2026-10-24) was `flutter analyze` with no issues and `flutter test` with 288 tests passing. These are historical reported results, not tests run during this documentation update.
-- V2 application-code work has not yet been implemented as of this context update. Documentation changes do not imply that any V2 requirement is already satisfied.
+- V2 refinement is just beginning. The latest application-code change fixes the manual/live rest-timer boundary; broader logger and UX requirements remain to be investigated against the current code.
+- PR #2 (merged): https://github.com/mxtwng/Claude-ObsidianFit/pull/2 — “Fix rest timer boundary for manual workouts”.
 
 ## Architecture and data integrity
 
@@ -31,22 +31,43 @@ ObsidianFit is moving from the Demo 1 maintenance checkpoint into V2 refinement.
 
 Do not break Markdown/GPX round-tripping, silently rewrite historical sessions when templates change, infer results from targets, or introduce destructive migration without explicit approval.
 
+## Recent implementation checkpoint
+
+### Manual/live rest-timer boundary — merged
+
+The previous bug was in `lib/ui/workout/workout_session_page.dart`: checking a completed set could start the rest timer even for a historical/manual workout.
+
+The merged fix checks `_draft.isManual` after toggling a set. Historical/manual set completion returns without starting live rest; active live set completion retains the rest-timer behavior. The check reads the current draft state on every toggle, so backdating a session changes behavior immediately.
+
+Regression coverage in `test/rest_timer_boundary_test.dart` covers:
+- Checking, unchecking, and rechecking a set in a manual/backdated workout does not start rest.
+- Checking a set in a live workout still starts rest.
+- Calling `setStart()` changes the draft to manual mode.
+
+Owner-run validation on the PR branch before merge:
+- `dart format lib/ui/workout/workout_session_page.dart test/rest_timer_boundary_test.dart` — 2 files checked, 0 changes.
+- `flutter analyze` — no issues found.
+- `flutter test` — all 291 tests passed, including the new regression tests.
+
+The owner then fast-forwarded local `main` from `origin/main`; the merge included the fix and test file. These are reported command results from the PR branch, not a claim that the commands were rerun after merging.
+
 ## Important implementation facts to verify before changing
 
 - The codebase contains a backdated/manual workout session path (`startRetroWorkoutSession()`) and a `WorkoutDraft` manual mode. This does not by itself prove the flow is discoverable or works end-to-end.
-- In the previously inspected `workout_session_page.dart`, `_toggleDone(DraftSet set)` started the rest timer when a set became checked without an evident manual-session guard. Re-read the current code and add a regression test before fixing; do not rely on this note instead of checking the current branch.
+- **Next priority:** inspect manual gym logging from its actual UI entry point through saving a session. Report concrete findings with file/line references before changing code; do not assume the flow is absent or broken without evidence.
 - Calendar past-date entry has been an entry point for backdated gym logging; inspect the actual UI before asserting that manual logging is unavailable.
 - Existing set markers include W/N/D/F, but V2 does not mandate this taxonomy. Dropsets, supersets, and circuits are grouping/technique concepts and should not be collapsed into a universal set-type enum without a deliberate design decision.
 - An unexplained grey `1` indicator was reported. Investigate its source and intended semantics before changing it.
-- Existing tests cover manual draft serialization, but prior inspection did not establish complete UI-level coverage of the manual/live timer boundary.
+- The timer-boundary regression now has UI-level tests. Continue to add focused tests for future behavior changes, especially persistence, date/time handling, and manual versus live logging.
 
 These are leads from prior inspection, not a substitute for current code evidence.
 
 ## Validation baseline and caveats
 
-At the Demo 1 checkpoint, the developer reported:
+The latest owner-reported validation for the current implementation, on the PR branch immediately before merge:
+- `dart format` on the two touched Dart files: 0 changes.
 - `flutter analyze`: no issues found.
-- `flutter test`: 288 tests passed.
+- `flutter test`: 291 tests passed.
 
 Do not claim these were rerun unless you actually run them. Automated tests do not replace Android/iOS real-device checks for GPS, background service lifecycle, BLE, notifications, permissions, or wake-lock behavior.
 
