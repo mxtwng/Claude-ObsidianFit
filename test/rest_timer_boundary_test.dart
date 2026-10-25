@@ -40,30 +40,30 @@ void main() {
   testWidgets(
     'manual workout set completion never starts rest timer',
     (tester) async {
-    await openSession(
-      tester,
-      backdateTo: DateTime(2026, 10, 18, 18, 30),
-    );
-    await addExercise(tester);
+      await openSession(
+        tester,
+        backdateTo: DateTime(2026, 10, 18, 18, 30),
+      );
+      await addExercise(tester);
 
-    await toggleFirstSet(tester);
-    expect(find.byTooltip('Skip rest'), findsNothing);
+      await toggleFirstSet(tester);
+      expect(find.byTooltip('Skip rest'), findsNothing);
 
-    // Corrections to a historical entry must not start rest either.
-    await toggleFirstSet(tester);
-    await toggleFirstSet(tester);
-    expect(find.byTooltip('Skip rest'), findsNothing);
+      // Corrections to a historical entry must not start rest either.
+      await toggleFirstSet(tester);
+      await toggleFirstSet(tester);
+      expect(find.byTooltip('Skip rest'), findsNothing);
     },
   );
 
   testWidgets(
     'live workout set completion still starts rest timer',
     (tester) async {
-    await openSession(tester);
-    await addExercise(tester);
+      await openSession(tester);
+      await addExercise(tester);
 
-    await toggleFirstSet(tester);
-    expect(find.byTooltip('Skip rest'), findsOneWidget);
+      await toggleFirstSet(tester);
+      expect(find.byTooltip('Skip rest'), findsOneWidget);
     },
   );
 
