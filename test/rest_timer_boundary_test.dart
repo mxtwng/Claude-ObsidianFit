@@ -32,7 +32,9 @@ void main() {
     final checkbox = find.byType(Checkbox).first;
     await tester.ensureVisible(checkbox);
     await tester.tap(checkbox);
-    await tester.pumpAndSettle();
+    // A live rest timer intentionally ticks periodically, so pump one frame
+    // instead of waiting for pumpAndSettle to observe a settled timer.
+    await tester.pump();
   }
 
   testWidgets('manual workout set completion never starts rest timer', (
