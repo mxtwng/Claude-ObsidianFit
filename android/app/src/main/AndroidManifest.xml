@@ -1,14 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?>
 <!--
-  REFERENCE MANIFEST for ObsidianFit (Phase 3/4 features).
-
-  Apply with:
-    flutter create --platforms=android,ios --project-name obsidian_fit .
-    cp docs/platform/AndroidManifest.reference.xml \
-       android/app/src/main/AndroidManifest.xml
-
-  Then check `git diff` in case your Flutter version's template differs.
-  See docs/phase3_platform_setup.md for why each entry exists.
+  Live Android manifest for ObsidianFit.
+  This file is authoritative; do not overwrite it from a documentation copy.
+  See docs/platform/README.md for permission and foreground-service rationale.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
