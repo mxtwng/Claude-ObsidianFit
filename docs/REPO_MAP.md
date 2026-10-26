@@ -1,6 +1,6 @@
 # Repository Map
 
-Navigation aid for implementation work. Confirm behavior in source and tests before editing. Current test targets are Android and Linux; iOS is deferred. See `docs/AUDIT_FOLLOWUPS.md` for verified stale-doc corrections and actionable follow-up tasks.
+Navigation aid for implementation work. Confirm behavior in source and tests before editing. Current test targets are Android and Linux; iOS is deferred. See `docs/README.md` for the documentation index, `docs/platform/README.md` for platform setup/device validation, and `docs/AUDIT_FOLLOWUPS.md` for actionable follow-up tasks.
 
 ## Entry points
 
@@ -52,6 +52,11 @@ UI gets services from `AppScope.of(context)` in `lib/ui/app_services.dart`. Afte
 - Workout: `workout_draft.dart` holds editable draft/live-vs-manual mode; `workout_session_page.dart` owns session flow/save/rest boundary; `exercise_card.dart` and `set_row.dart` edit entries; `rest_timer.dart` owns rest timing; `plate_math.dart` and `plate_calculator_sheet.dart` implement plate math/UI.
 - Activity: `activity_session_page.dart` is GPS-specific; `manual_activity_page.dart` is typed-duration retro/manual logging; `map_view.dart`, `track_charts.dart`, and `splits_table.dart` show track analytics; `hr_sheet.dart` handles HR UI; `ghost_route_sheet.dart` selects saved routes.
 - Shared UI: `prompt_dialog.dart` provides free-text/numeric prompts; `schedule.dart` resolves free-text weekly rotation; `session_entry.dart`, `session_entries_builder.dart`, `session_tile.dart`, and `session_preview_sheet.dart` assemble/display history entries.
+
+## Platform and documentation
+
+- `docs/platform/README.md` is the single platform setup/device-validation guide. The checked-in Android manifest is authoritative; there is no separate copied reference manifest.
+- `docs/CONTEXT.md` is the current checkpoint; `docs/IMPLEMENTATION_PLAN.md` is product intent; this map is navigation; `docs/AUDIT_FOLLOWUPS.md` is outstanding work.
 
 ## Schemas and compatibility
 
