@@ -17,11 +17,7 @@ dependencies:
   # Platform directory resolution
   path_provider: ^2.1.5
 
-  # YAML frontmatter parsing.
-  # NOTE: parsing currently goes through `yaml` + FrontMatterCodec
-  # (lib/services/FrontMatterCodec.dart). `front_matter` is declared as requested;
-  # version is unpinned because it could not be verified here. Run
-  # `flutter pub upgrade front_matter` and pin the resolved version.
+  # YAML frontmatter parsing via FrontMatterCodec.
   yaml: ^3.1.3
 
   # Formatting and ID generation
