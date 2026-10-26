@@ -37,15 +37,17 @@ class ActivitySession {
   /// `HH:mm` (24h) kept as a string for lossless round trip.
   final String timeStarted;
 
-  /// When the activity actually began (UTC, second precision). Null on legacy
-  /// and GPS notes, which fall back to [date] + [timeStarted].
+  /// When the activity actually began (UTC, second precision). May be null on
+  /// legacy notes, which fall back to [date] + [timeStarted]. Live GPS sessions
+  /// write this value.
   final DateTime? startTime;
 
   /// When the note was written (UTC, second precision). Set once at creation.
   final DateTime? dateLogged;
 
-  /// Canonical moving time in whole seconds for manual entries. Null for GPS
-  /// activities, which only carry [durationMin]. On a mismatch this wins.
+  /// Canonical active/moving time in whole seconds when available. Manual entries
+  /// and future live non-GPS timed activities write it; legacy GPS notes may only
+  /// carry [durationMin]. On a mismatch this value wins.
   final int? durationSeconds;
   final double durationMin;
   final double? distanceKm;
