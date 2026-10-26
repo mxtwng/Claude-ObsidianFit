@@ -5,8 +5,9 @@
 2. **docs/IMPLEMENTATION_PLAN.md** records agreed product direction and priorities; it is intent, not proof of implementation.
 3. **docs/CONTEXT.md** is the current engineering checkpoint.
 4. **docs/REPO_MAP.md** is the module/test navigation guide.
-5. **schemas/** defines Markdown/frontmatter contracts and compatibility expectations.
-6. **README.md** is the user-facing overview, not a complete specification.
+5. **docs/AUDIT_FOLLOWUPS.md** contains actionable audit follow-ups and current platform-validation scope; distinguish tasks from verified defects.
+6. **schemas/** defines Markdown/frontmatter contracts and compatibility expectations.
+7. **README.md** is the user-facing overview, not a complete specification.
 
 The private product masterplan is not stored here. Do not invent missing requirements. Ask before consequential unresolved product decisions.
 
@@ -50,7 +51,7 @@ flutter analyze
 flutter test
 ```
 
-Run analyzer/tests separately during diagnosis. For widget tests with periodic clocks, pump fixed frames rather than relying on `pumpAndSettle()`. Use mocked/recording vaults for fake-time UI tests and temporary directories for real persistence/re-index tests. Clearly list remaining Android/iOS device checks for GPS, background lifecycle, BLE, permissions, notifications, and wake lock.
+Run analyzer/tests separately during diagnosis. For widget tests with periodic clocks, pump fixed frames rather than relying on `pumpAndSettle()`. Use mocked/recording vaults for fake-time UI tests and temporary directories for real persistence/re-index tests. Current user validation scope is Android and Linux only. Clearly list Android device checks for GPS, background lifecycle, BLE, permissions, notifications, and wake lock; Linux should get desktop build/run and automated regression checks. iOS testing is deferred until explicitly resumed.
 
 ## Current handoff
 Read `docs/CONTEXT.md`. The next agreed feature is a **live timed activity without GPS**: a third global start option beside Gym workout and Outdoor activity. It needs a lightweight elapsed timer with pause/resume and save/discard, using the existing activity model/persistence route. It is not implemented on the reviewed baseline. Keep it separate from the GPS recorder and the manual/past logger.

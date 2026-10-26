@@ -7,14 +7,14 @@
 ![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-%5E3.5-0175C2?logo=dart&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
-![Platforms](https://img.shields.io/badge/Platforms-Android%20%7C%20iOS%20%7C%20Linux-lightgrey)
+![Current test targets](https://img.shields.io/badge/Current%20test%20targets-Android%20%7C%20Linux-lightgrey)
 ![Storage](https://img.shields.io/badge/Storage-local--first-success)
 
 </div>
 
 ObsidianFit puts a fitness interface over files you own. Gym sessions and activities are stored as Markdown with YAML frontmatter; GPS routes are stored as GPX 1.1 XML. Drift/SQLite accelerates calendar, history, and dashboard queries but is a **rebuildable read cache**, not the source of truth.
 
-> **Project status:** The original six-phase feature roadmap is implemented and the project is in V2 refinement. The existing UI is not automatically the final design. See [the implementation plan](docs/IMPLEMENTATION_PLAN.md), [engineering context](docs/CONTEXT.md), and [repository map](docs/REPO_MAP.md).
+> **Project status:** The original six-phase feature roadmap is implemented and the project is in V2 refinement. Android and Linux are the current testing targets; iOS configuration and device testing are deferred and should not be considered verified. The existing UI is not automatically the final design. See [the implementation plan](docs/IMPLEMENTATION_PLAN.md), [engineering context](docs/CONTEXT.md), [repository map](docs/REPO_MAP.md), and [audit follow-ups](docs/AUDIT_FOLLOWUPS.md).
 
 > **Verification provenance:** On 2026-10-26 the developer reported a local run with `flutter analyze` clean and all 382 tests passing after the flexible manual activity logging work. These were owner-reported results, not run by this documentation update. They do not establish automated CI coverage or complete real-device validation.
 
