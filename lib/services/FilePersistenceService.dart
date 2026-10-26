@@ -350,7 +350,12 @@ class FilePersistenceService {
           workoutsFolder,
           _stem(s.date, s.timeStarted, s.split, 'Workout'),
         );
-    return _writeAtomic(path, renderWorkout(s));
+    return _writeAtomic(
+      path,
+      renderWorkout(s),
+      expectedFolder: workoutsFolder,
+      extension: '.md',
+    );
   }
 
   /// Saves an activity into `Activities/`.
@@ -360,14 +365,24 @@ class FilePersistenceService {
           activitiesFolder,
           _stem(a.date, a.timeStarted, a.category, 'Activity'),
         );
-    return _writeAtomic(path, renderActivity(a));
+    return _writeAtomic(
+      path,
+      renderActivity(a),
+      expectedFolder: activitiesFolder,
+      extension: '.md',
+    );
   }
 
   /// Saves a plan into `Plans/`.
   Future<File> savePlan(PlanProgram plan, {String? relativePath}) {
     final path = relativePath ??
         _uniquePath(plansFolder, 'Plan_${_slug(plan.programName, 'Plan')}');
-    return _writeAtomic(path, renderPlan(plan));
+    return _writeAtomic(
+      path,
+      renderPlan(plan),
+      expectedFolder: plansFolder,
+      extension: '.md',
+    );
   }
 
   /// Saves GPX text as `Tracks/YYYY-MM-DD_HHMM_Route.gpx` (`_2`, `_3`, ...
@@ -382,7 +397,12 @@ class FilePersistenceService {
       path = '$tracksFolder/${stem}_$n.gpx';
       n++;
     }
-    return _writeAtomic(path, gpxXml);
+    return _writeAtomic(
+      path,
+      gpxXml,
+      expectedFolder: tracksFolder,
+      extension: '.gpx',
+    );
   }
 
   /// Reads a track by bare file name (as stored in `ActivitySession.gpxFileName`).
@@ -541,11 +561,65 @@ class FilePersistenceService {
     return (lexical: lexical, real: real);
   }
 
+  /// Validates the vault-relative destination before any file is written.
+  ///
+  /// Save APIs intentionally support only a filename directly inside their
+  /// designated data folder. This matches generated paths and paths returned
+  /// by [relativePath], while rejecting traversal, absolute paths, unexpected
+  /// roots, nested paths and platform-specific separators.
+  String _checkedVaultRelativePath(
+    String fileName, {
+    required String expectedFolder,
+    required String extension,
+  }) {
+    final segments = fileName.split('/');
+    final invalid = fileName.trim().isEmpty ||
+        fileName.contains('\\') ||
+        fileName.contains('\\u0000') ||
+        p.isAbsolute(fileName) ||
+        _driveLetterPrefix.hasMatch(fileName) ||
+        segments.length != 2 ||
+        segments.first != expectedFolder ||
+        segments.last.isEmpty ||
+        segments.last == '.' ||
+        segments.last == '..' ||
+        segments.last.contains(':') ||
+        !segments.last.toLowerCase().endsWith(extension);
+    if (invalid) {
+      throw FileSystemException(
+        'Invalid vault-relative destination',
+        fileName,
+      );
+    }
+    return fileName;
+  }
+
   /// Write to a temp file in the same directory, then rename, so a sync tool
-  /// or a crash never sees a half-written note.
-  Future<File> _writeAtomic(String fileName, String content) async {
-    final target = File(p.join(vaultDir.path, fileName));
+  /// or a crash never sees a half-written note. The destination is validated
+  /// and the data folder's resolved path must remain inside the vault.
+  Future<File> _writeAtomic(
+    String fileName,
+    String content, {
+    required String expectedFolder,
+    required String extension,
+  }) async {
+    final checkedPath = _checkedVaultRelativePath(
+      fileName,
+      expectedFolder: expectedFolder,
+      extension: extension,
+    );
+    final target = File(p.join(vaultDir.path, checkedPath));
     await target.parent.create(recursive: true);
+
+    final vaultReal = await vaultDir.resolveSymbolicLinks();
+    final folderReal = await target.parent.resolveSymbolicLinks();
+    if (!p.isWithin(vaultReal, folderReal)) {
+      throw FileSystemException(
+        'Vault write destination resolves outside the vault',
+        fileName,
+      );
+    }
+
     final tmp = File('${target.path}.tmp');
     await tmp.writeAsString(content, flush: true);
     return tmp.rename(target.path);
