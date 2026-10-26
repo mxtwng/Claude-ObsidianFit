@@ -11,7 +11,7 @@
 The private product masterplan is not stored here. Do not invent missing requirements. Ask before consequential unresolved product decisions.
 
 ## Working agreement
-- Begin with \`git status --short --branch\` and \`git log -1 --oneline\`; preserve user changes.
+- Begin with `git status --short --branch` and `git log -1 --oneline`; preserve user changes.
 - Read the relevant call path and tests. Do not scan the entire repository by default, but when asked for a repository audit, do it thoroughly and update the docs that the audit exposes as stale.
 - Trace visible UI through navigation, model, persistence, re-indexing, and tests before saying a feature is absent or broken.
 - Existing UI/models are evidence of current behavior, not proof every legacy behavior is desirable. Read actual signatures before using APIs.
@@ -19,7 +19,7 @@ The private product masterplan is not stored here. Do not invent missing require
 - Add regression tests for parsing/round trips, timestamps, manual-vs-live behavior, timers, persistence, indexing, and discard/error paths.
 - Never delete user records, silently rewrite history, add destructive migrations, or change durable formats without a clear need and compatibility tests.
 - No cloud sync, telemetry, uploaded analytics, or enabled-by-default reminders/notifications without explicit approval.
-- Do not commit, push, merge, reset, clean, or rewrite history unless explicitly authorized. Repository-edit permission is not permission to merge into \`main\`.
+- Do not commit, push, merge, reset, clean, or rewrite history unless explicitly authorized. Repository-edit permission is not permission to merge into `main`.
 - Separate code inspection from commands actually run. Never claim a test/build/device check passed without evidence.
 
 ## Domain invariants
@@ -34,7 +34,7 @@ The private product masterplan is not stored here. Do not invent missing require
 
 ## Storage invariants
 - Markdown notes and GPX 1.1 files are durable source of truth; Drift/SQLite is a disposable read cache rebuildable from the vault.
-- UI services come from \`AppScope.of(context)\` / \`AppServices\`: database, \`FilePersistenceService\` vault, and \`VaultReindexerService\`.
+- UI services come from `AppScope.of(context)` / `AppServices`: database, `FilePersistenceService` vault, and `VaultReindexerService`.
 - Use persistence service APIs for atomic writes, collision handling, and GPX path confinement; do not bypass them.
 - After a successful note save, request re-indexing so views refresh. A re-index failure must not undo a durable save.
 - No GPX is valid for non-GPS activity; do not create empty tracks.
@@ -43,14 +43,14 @@ The private product masterplan is not stored here. Do not invent missing require
 ## Validation
 Run focused tests first, then broader checks as appropriate:
 
-\`\`\`bash
+```bash
 dart format <touched Dart files>
 flutter test <focused test file>
 flutter analyze
 flutter test
-\`\`\`
+```
 
-Run analyzer/tests separately during diagnosis. For widget tests with periodic clocks, pump fixed frames rather than relying on \`pumpAndSettle()\`. Use mocked/recording vaults for fake-time UI tests and temporary directories for real persistence/re-index tests. Clearly list remaining Android/iOS device checks for GPS, background lifecycle, BLE, permissions, notifications, and wake lock.
+Run analyzer/tests separately during diagnosis. For widget tests with periodic clocks, pump fixed frames rather than relying on `pumpAndSettle()`. Use mocked/recording vaults for fake-time UI tests and temporary directories for real persistence/re-index tests. Clearly list remaining Android/iOS device checks for GPS, background lifecycle, BLE, permissions, notifications, and wake lock.
 
 ## Current handoff
-Read \`docs/CONTEXT.md\`. The next agreed feature is a **live timed activity without GPS**: a third global start option beside Gym workout and Outdoor activity. It needs a lightweight elapsed timer with pause/resume and save/discard, using the existing activity model/persistence route. It is not implemented on the reviewed baseline. Keep it separate from the GPS recorder and the manual/past logger.
+Read `docs/CONTEXT.md`. The next agreed feature is a **live timed activity without GPS**: a third global start option beside Gym workout and Outdoor activity. It needs a lightweight elapsed timer with pause/resume and save/discard, using the existing activity model/persistence route. It is not implemented on the reviewed baseline. Keep it separate from the GPS recorder and the manual/past logger.
