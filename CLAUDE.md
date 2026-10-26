@@ -5,8 +5,9 @@
 2. **docs/IMPLEMENTATION_PLAN.md** records agreed product direction and priorities; it is intent, not proof of implementation.
 3. **docs/CONTEXT.md** is the current engineering checkpoint.
 4. **docs/REPO_MAP.md** is the module/test navigation guide.
-5. **schemas/** defines Markdown/frontmatter contracts and compatibility expectations.
-6. **README.md** is the user-facing overview, not a complete specification.
+5. **docs/AUDIT_FOLLOWUPS.md** contains actionable audit follow-ups and current platform-validation scope; distinguish tasks from verified defects.
+6. **schemas/** defines Markdown/frontmatter contracts and compatibility expectations.
+7. **README.md** is the user-facing overview, not a complete specification.
 
 The private product masterplan is not stored here. Do not invent missing requirements. Ask before consequential unresolved product decisions.
 
