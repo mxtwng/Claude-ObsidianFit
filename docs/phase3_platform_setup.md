@@ -3,17 +3,7 @@
 Everything the recording stack needs outside Dart code: Android and iOS
 permissions, the Syncthing vault layout, and how to test on a device.
 
-> **First-time setup.** This repo does not contain `android/` or `ios/` yet.
-> Generate them once; `flutter create` never overwrites existing files such as
-> `lib/` or `pubspec.yaml`:
->
-> ```bash
-> flutter create --platforms=android,ios --project-name obsidian_fit .
-> flutter pub get
-> git status   # confirm lib/ and pubspec.yaml are untouched
-> ```
->
-> Then apply the Android manifest and iOS plist entries below.
+> **Repository state:** this repository already contains `android/` and `ios/` platform projects. Do not regenerate them as routine setup; doing so can overwrite platform configuration. Review the checked-in manifests/plists and reference files below, then apply only the missing platform-specific settings for the target device.
 
 ## 1. Android
 
