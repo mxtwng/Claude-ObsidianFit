@@ -11,7 +11,7 @@
 ///    `bluetooth-central` mode keep the app running; the Dart background
 ///    service is not what keeps iOS alive.
 ///
-/// See `docs/phase3_platform_setup.md` for the manifest / Info.plist entries.
+/// See `docs/platform/README.md` for platform manifest / Info.plist guidance.
 library;
 
 import 'dart:async';

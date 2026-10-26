@@ -1,14 +1,14 @@
 # Repository audit follow-ups
 
-_Last reviewed: 2026-10-26 against `main` commit `2f4d6fd76544adece0afd1eb4effa52ba6887991`._
+_Last reviewed: 2026-10-26 against `main` commit `7dba1371a9a44f69a1f5368af8a4b5adc80f8bac`._
 
 This is an actionable handoff, not a claim that every item has been implemented or reproduced. Current user validation targets are **Android and Linux**. iOS is explicitly deferred.
 
 ## Closed during this documentation refresh
 
-- [x] Update `docs/CONTEXT.md` after PR #4 was merged and its branch deleted.
+- [x] Update `docs/CONTEXT.md` after PR #5 was merged; remove branch-specific checkpoint wording.
 - [x] Correct `ActivitySession.startTime` documentation: live GPS sessions already write it.
-- [x] Correct the platform guide: Syncthing conflict copies are filtered by `FilePersistenceService.listMarkdownFiles()`.
+- [x] Correct the platform guide: Syncthing conflict copies are filtered by `FilePersistenceService.listMarkdownFiles()`; consolidate platform guidance under `docs/platform/README.md`.
 - [x] Record that iOS permission/background setup is incomplete and deferred, not current acceptance scope.
 - [x] Clarify the grey `1` in workout rows: it is the set number; the styling/type indicator is intentional. Do not change it.
 - [x] State Android/Linux-only current validation scope in the engineering instructions.

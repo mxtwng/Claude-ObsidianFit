@@ -1,15 +1,14 @@
-# Platform setup (Phase 3 / 4)
+# Platform setup and device validation
 
-Everything the recording stack needs outside Dart code: Android and iOS
-permissions, the Syncthing vault layout, and how to test on a device.
+This is the single guide for platform-specific setup, vault-location caveats, and device validation. It describes checked-in configuration and deferred work; it is not a replacement manifest or proof that every platform is ready.
 
-> **Repository state:** this repository already contains `android/` and `ios/` platform projects. Do not regenerate them as routine setup; doing so can overwrite platform configuration. Review the checked-in manifests/plists and reference files below, then apply only the missing platform-specific settings for the target device.
+ > **Repository state:** checked-in `android/` and `ios/` platform projects already exist. Do not regenerate them as routine setup. The live Android manifest is `android/app/src/main/AndroidManifest.xml`; inspect and edit it directly. This guide is explanatory, not a copy-and-paste manifest.
 
 ## 1. Android
 
-Use `docs/platform/AndroidManifest.reference.xml` as a commented reference for the required permissions and foreground-service declaration. The app's `android/app/src/main/AndroidManifest.xml` already exists: **do not blindly overwrite it**. Compare the reference with the checked-in manifest and merge only missing or intentionally changed entries.
+The checked-in `android/app/src/main/AndroidManifest.xml` is the source of truth for declared permissions and foreground-service configuration. **Do not overwrite it from a copied reference file.** Compare the live manifest with the requirements below and change it deliberately.
 
-Summary of what the reference declares and why:
+Summary of the current manifest entries and why they exist:
 
 | Permission | Why |
 |---|---|

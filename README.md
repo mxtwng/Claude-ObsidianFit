@@ -14,7 +14,7 @@
 
 ObsidianFit puts a fitness interface over files you own. Gym sessions and activities are stored as Markdown with YAML frontmatter; GPS routes are stored as GPX 1.1 XML. Drift/SQLite accelerates calendar, history, and dashboard queries but is a **rebuildable read cache**, not the source of truth.
 
-> **Project status:** The original six-phase feature roadmap is implemented and the project is in V2 refinement. Android and Linux are the current testing targets; iOS configuration and device testing are deferred and should not be considered verified. The existing UI is not automatically the final design. See [the implementation plan](docs/IMPLEMENTATION_PLAN.md), [engineering context](docs/CONTEXT.md), [repository map](docs/REPO_MAP.md), and [audit follow-ups](docs/AUDIT_FOLLOWUPS.md).
+> **Project status:** The original feature phases established the core storage, gym logging, GPS/BLE, manual activity logging, and analytics capabilities. Platform readiness and real-device validation are separate: Android and Linux are the current testing targets; iOS configuration and device testing are deferred and unverified. V2 refinement remains active, and the existing UI is not automatically the final design. Start with the [documentation index](docs/README.md), then see the [implementation plan](docs/IMPLEMENTATION_PLAN.md), [engineering context](docs/CONTEXT.md), [repository map](docs/REPO_MAP.md), and [audit follow-ups](docs/AUDIT_FOLLOWUPS.md).
 
 > **Verification provenance:** On 2026-10-26 the developer reported a local run with `flutter analyze` clean and all 382 tests passing after the flexible manual activity logging work. These were owner-reported results, not run by this documentation update. They do not establish automated CI coverage or complete real-device validation.
 
@@ -114,7 +114,7 @@ See [schemas/](schemas/) for baseline note examples and extension contracts. The
 ### Prerequisites
 - Flutter SDK and Dart compatible with the `^3.5.0` constraint in `pubspec.yaml`.
 - **Android:** Android Studio, Android SDK, compatible Java toolchain.
-- **iOS:** macOS, Xcode, CocoaPods.
+- **iOS (deferred):** macOS, Xcode, CocoaPods are required if/when iOS work resumes.
 - **Linux desktop:** Flutter Linux dependencies such as `clang`, `cmake`, `ninja-build`, `pkg-config`, and GTK development headers.
 
 ### Clone and fetch dependencies
@@ -147,7 +147,7 @@ flutter run --release
 flutter build apk --debug
 ```
 
-GPS, background services, BLE, notifications, permissions, and wake-lock behavior depend on platform lifecycle and device policies. Verify them on real target hardware; desktop/widget tests do not prove device behavior. See [platform setup and device testing](docs/phase3_platform_setup.md).
+GPS, background services, BLE, notifications, permissions, and wake-lock behavior depend on platform lifecycle and device policies. Verify them on real target hardware; desktop/widget tests do not prove device behavior. See [platform setup and device testing](docs/platform/README.md).
 
 ## Development status
 
