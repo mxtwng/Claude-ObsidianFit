@@ -1,5 +1,6 @@
 /// "+ Log Past Session" chooser opened from a past calendar day: a gym workout
-/// or an outdoor activity without GPS, both pre-filled with the selected date.
+/// or any other activity (run, walk, martial arts, yoga, ...) without GPS, both
+/// pre-filled with the selected date.
 library;
 
 import 'package:flutter/material.dart';
@@ -78,10 +79,12 @@ Future<bool> showLogPastSessionSheet(
               leading:
                   const Icon(Icons.directions_run, color: AppColors.activity),
               title: const Text(
-                'Outdoor activity',
+                'Other activity',
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
-              subtitle: const Text('Enter a run, ride or walk without GPS'),
+              subtitle: const Text(
+                'Run, walk, martial arts, yoga and more, without GPS',
+              ),
               onTap: () => Navigator.of(sheetContext).pop(_PastChoice.activity),
             ),
           ],

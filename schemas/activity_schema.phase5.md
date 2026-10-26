@@ -22,25 +22,45 @@ Runs, rides and walks entered after the fact have **no GPX trace**.
 * No file is created in `Tracks/` for a manual activity, and the History screen shows no route map for it.
 * When `gpx_file` is present, nothing changes: `"[[<name>.gpx]]"` wikilink, resolved by file name.
 
-## 2. Manual outdoor metrics
+## 2. Manual activity metrics
 
-Frontmatter keys for a manual outdoor entry:
+Manual entries cover **any** activity, not only distance sports: a run, ride or
+walk, but also Taekwondo, boxing, yoga, stretching and similar sessions that
+have no distance or elevation. `category` is a free-text label slugged to
+`[a-z0-9_]` (`taekwondo`, `trail_run`).
+
+Frontmatter keys for a manual entry:
 
 | Key | Type | Required (manual) | Rules |
 |---|---|---|---|
 | `type` | string | Yes | `activity` |
-| `category` | string | Yes | `run`, `ride`, `walk`, ... |
+| `category` | string | Yes | `run`, `ride`, `walking`, `taekwondo`, `boxing`, `yoga`, `stretching`, ... |
 | `date` | `YYYY-MM-DD` | Yes | Local calendar date of `start_time` (unchanged). |
 | `time_started` | `"HH:mm"` | Yes | Local wall-clock time of `start_time` (unchanged). |
-| `distance_km` | number > 0 | **Yes** | Kilometres, decimals allowed. |
 | `duration_seconds` | integer >= 1 | **Yes** | Moving time in whole seconds. Canonical duration for manual entries. |
-| `elevation_gain_m` | number >= 0 | **Yes** | Metres climbed. Write `0` for flat or unknown. |
+| `distance_km` | number > 0 | Optional | Kilometres, decimals allowed. **Omit the key when no distance was entered**; never write `0`. |
+| `elevation_gain_m` | number >= 0 | Optional | Metres climbed. **Omit the key when not entered** (unknown or not applicable). `0` means "entered, flat". |
 | `avg_hr` | integer (bpm) | Optional | Omit the key if unknown; never write `0`. |
-| `rpe` | number 1-10 | **Yes** | Session RPE, 1 (very easy) to 10 (maximal). Integers or halves (`7.5`). |
+| `rpe` | number 1-10 | Optional | Session RPE, 1 (very easy) to 10 (maximal). Integers or halves (`7.5`). **Omit the key when not entered.** |
 | `gpx_file` | wikilink | No | Omit or `null` (see section 1). |
-| `max_hr`, `avg_pace_min_km`, `tss_score` | as in `activity_schema.md` | Optional | `avg_pace_min_km` is derived (`duration_seconds / distance_km`, `m:ss`) if written. |
+| `max_hr`, `avg_pace_min_km`, `tss_score` | as in `activity_schema.md` | Optional | `avg_pace_min_km` is derived (`duration_seconds / distance_km`, `m:ss`) and **only written when `distance_km` is present**. |
 | `start_time`, `date_logged` | ISO 8601 UTC | Optional (written by Phase 5 loggers) | Same semantics as in `workout_schema.phase5.md`. |
 | `duration_min` | number | Derived | See next paragraph. |
+
+**Blank means unknown, not zero.** A writer never substitutes `0` for a value
+the user did not enter. When a distance, elevation, RPE or heart rate is
+supplied it must be valid (distance > 0, elevation >= 0, RPE 1-10, heart rate
+1-300); otherwise the entry is rejected rather than saved without it.
+
+**Title.** An entry with a distance is titled `<km> km <Label>`
+(`7.5 km Run`); an entry without one is titled with the label alone
+(`Taekwondo`).
+
+**Backward compatibility.** Readers already treat all of these keys as
+optional, so existing notes (including ones with `elevation_gain_m: 0` or an
+`rpe`) stay valid and are never rewritten. Without a distance, History and the
+calendar show duration only, and the weekly distance total counts `0 km` for
+the entry while it still counts as one activity.
 
 **Duration compatibility.** `duration_min` is still a required key in today's
 parser. Until the model migrates, manual entries write **both**:
@@ -126,7 +146,33 @@ tags:
 ---
 ```
 
-### 3.3 Explicit `null` is also valid on read
+### 3.3 Manual Taekwondo session, no distance, elevation or RPE
+
+```yaml
+---
+type: activity
+category: taekwondo
+date: 2026-10-24
+time_started: "18:00"
+start_time: "2026-10-24T11:00:00Z"
+date_logged: "2026-10-24T13:05:12Z"
+duration_seconds: 4500
+duration_min: 75
+tags:
+  - fitness/taekwondo
+---
+```
+
+```markdown
+# Taekwondo
+
+- Sparring and forms.
+```
+
+No `distance_km`, `elevation_gain_m`, `rpe` or `avg_pace_min_km` key is
+written, because none was entered.
+
+### 3.4 Explicit `null` is also valid on read
 
 ```yaml
 gpx_file: null
@@ -139,6 +185,6 @@ gpx_file: null
 For the Phase 5 implementation (not done yet):
 
 * `ActivitySession`: add `durationSeconds`, `rpe`, `startTime`, `dateLogged` to `knownKeys`, `toFrontmatter` and `fromFrontmatter`. Keep `gpxFileName` nullable, and make sure `extractWikilinkTarget` yields `null` for `null`, `""` and `"[[]]"`.
-* The Manual Outdoor Activity Logger must validate: `distance_km > 0`, `duration_seconds >= 1`, `elevation_gain_m >= 0`, `rpe` in 1-10, `avg_hr` positive when given.
+* The Manual Activity Logger must validate: `duration_seconds >= 1` (the only required metric), and, **only when entered**, `distance_km > 0`, `elevation_gain_m >= 0`, `rpe` in 1-10, `avg_hr` positive. A blank optional field omits its key. The rules live in `validateManualActivity` / `buildManualActivity` (`lib/ui/activity/manual_activity_page.dart`).
 * Add round-trip tests with **new fixtures** (for example `test/fixtures/`), and keep `schemas/activity_schema.md` byte-identical so the existing tests stay valid.
 * The History and map views must handle activities with no GPX (no route preview).

@@ -1,15 +1,17 @@
-/// Manual outdoor activity logger: a run, ride or walk entered after the fact
-/// with no GPS trace.
+/// Manual activity logger: any activity (a run, ride, walk, Taekwondo, boxing,
+/// yoga, stretching, ...) entered after the fact with no GPS trace.
 ///
 /// Writes one note, `Activities/YYYY-MM-DD_HHMM_<category>.md`, and no GPX
 /// file: `gpxFileName` is null, so the key is omitted from the frontmatter and
 /// the History screen shows no route map. Spec:
 /// `schemas/activity_schema.phase5.md`, sections 1 and 2.
 ///
-/// Required: distance (> 0 km), duration (>= 1 s), elevation gain (>= 0 m,
-/// `0` for flat or unknown) and session RPE (1-10, halves allowed).
-/// Optional: average heart rate. Timestamps: `start_time` is the picked start
-/// and `date_logged` is the save time, both UTC with a trailing `Z`.
+/// Required: duration (>= 1 s). Optional, and left out of the note when blank
+/// (never written as `0`): distance (> 0 km when given), elevation gain
+/// (>= 0 m when given), session RPE (1-10, halves allowed) and average heart
+/// rate. Pace is derived only when a distance is given. Timestamps:
+/// `start_time` is the picked start and `date_logged` is the save time, both
+/// UTC with a trailing `Z`.
 library;
 
 import 'dart:async';
@@ -24,7 +26,153 @@ import '../common/prompt_dialog.dart';
 import '../common/start_time_card.dart';
 import '../theme/app_theme.dart';
 
-const List<String> _manualCategorySuggestions = ['Run', 'Ride', 'Walk', 'Hike'];
+/// Quick picks in the "Log activity" prompt. Any text can still be typed.
+const List<String> manualCategorySuggestions = [
+  'Run',
+  'Ride',
+  'Walking',
+  'Hike',
+  'Taekwondo',
+  'Boxing',
+  'Yoga',
+  'Stretching',
+];
+
+/// Per-field problems of one manual entry; a null field is valid.
+class ManualActivityErrors {
+  const ManualActivityErrors({
+    this.distance,
+    this.duration,
+    this.elevation,
+    this.avgHr,
+    this.rpe,
+  });
+
+  final String? distance;
+  final String? duration;
+  final String? elevation;
+  final String? avgHr;
+  final String? rpe;
+
+  bool get isValid =>
+      distance == null &&
+      duration == null &&
+      elevation == null &&
+      avgHr == null &&
+      rpe == null;
+}
+
+double? _parseNumber(String text) =>
+    double.tryParse(text.trim().replaceAll(',', '.'));
+
+/// Validates a manual entry's raw field values.
+///
+/// Only [durationSeconds] is required (>= 1). A blank [distanceText],
+/// [elevationText] or [avgHrText], or a null [rpe], means "not entered" and is
+/// valid. When something is entered it must be usable: distance > 0 km,
+/// elevation >= 0 m, heart rate 1-300 bpm, RPE 1-10.
+ManualActivityErrors validateManualActivity({
+  required String distanceText,
+  required int durationSeconds,
+  required String elevationText,
+  required String avgHrText,
+  required double? rpe,
+}) {
+  String? distance;
+  final d = distanceText.trim().isEmpty ? null : _parseNumber(distanceText);
+  if (distanceText.trim().isNotEmpty && (d == null || !d.isFinite || d <= 0)) {
+    distance = 'Enter a distance above 0 km, or leave it empty';
+  }
+
+  String? elevation;
+  final e = elevationText.trim().isEmpty ? null : _parseNumber(elevationText);
+  if (elevationText.trim().isNotEmpty && (e == null || !e.isFinite || e < 0)) {
+    elevation = 'Enter the elevation gain in metres (0 or more), '
+        'or leave it empty';
+  }
+
+  String? avgHr;
+  final hrTrimmed = avgHrText.trim();
+  final hr = hrTrimmed.isEmpty ? null : int.tryParse(hrTrimmed);
+  if (hrTrimmed.isNotEmpty && (hr == null || hr <= 0 || hr > 300)) {
+    avgHr = 'Enter a heart rate from 1 to 300, or leave empty';
+  }
+
+  String? rpeError;
+  if (rpe != null && !(rpe >= 1 && rpe <= 10)) {
+    rpeError = 'RPE must be between 1 and 10';
+  }
+
+  return ManualActivityErrors(
+    distance: distance,
+    duration:
+        durationSeconds < 1 ? 'Enter a duration of at least 1 second' : null,
+    elevation: elevation,
+    avgHr: avgHr,
+    rpe: rpeError,
+  );
+}
+
+/// Builds the note for a manual entry that passed [validateManualActivity].
+///
+/// Only what was entered is written: a blank distance, elevation, heart rate
+/// or RPE leaves its key out, and `avg_pace_min_km` is derived only when a
+/// distance is given (duration is always present). The title is
+/// `<km> km <label>` for a distance entry and just `<label>` otherwise.
+/// [category] is the slugged frontmatter value, [label] the display text, and
+/// [start] the (already clamped) local start; [now] becomes `date_logged`.
+ActivitySession buildManualActivity({
+  required String category,
+  required String label,
+  required DateTime start,
+  required DateTime now,
+  required int durationSeconds,
+  String distanceText = '',
+  String elevationText = '',
+  String avgHrText = '',
+  double? rpe,
+  String notes = '',
+}) {
+  final distance =
+      distanceText.trim().isEmpty ? null : _parseNumber(distanceText);
+  final distanceKm =
+      distance == null ? null : double.parse(distance.toStringAsFixed(2));
+  final elevation =
+      elevationText.trim().isEmpty ? null : _parseNumber(elevationText);
+  final hrTrimmed = avgHrText.trim();
+  final title =
+      distanceKm == null ? label : '${distanceKm.toStringAsFixed(1)} km $label';
+
+  final draft = ActivitySession(
+    category: category,
+    date: DateTime(start.year, start.month, start.day),
+    timeStarted: DateFormat('HH:mm').format(start),
+    startTime: start.toUtc(),
+    dateLogged: now.toUtc(),
+    // Canonical duration, plus the derived minutes the parser still needs.
+    durationSeconds: durationSeconds,
+    durationMin: (durationSeconds / 60 * 10).round() / 10,
+    distanceKm: distanceKm,
+    elevationGainM: elevation,
+    avgHr: hrTrimmed.isEmpty ? null : int.parse(hrTrimmed),
+    rpe: rpe,
+    gpxFileName: null,
+    tags: ['fitness/$category'],
+    title: title,
+    bodyText: _notesAsBullets(notes),
+  );
+  // computedPaceMinKm is null without a distance, which keeps the key out.
+  return draft.copyWith(avgPaceMinKm: draft.computedPaceMinKm);
+}
+
+/// Plain text lines -> Markdown bullets, matching `activity_schema.md`.
+String _notesAsBullets(String text) {
+  final lines = text
+      .split('\n')
+      .map((l) => l.trim().replaceFirst(RegExp(r'^[-*]\s+'), ''))
+      .where((l) => l.isNotEmpty);
+  return lines.map((l) => '- $l').join('\n');
+}
 
 /// Opens the manual logger for [day] (the current time of day on that date,
 /// never in the future). Asks for the activity kind first unless [category]
@@ -40,8 +188,8 @@ Future<bool> startManualActivity(
       context,
       title: 'Log activity',
       initial: 'Run',
-      hint: 'e.g. Run',
-      suggestions: _manualCategorySuggestions,
+      hint: 'e.g. Taekwondo',
+      suggestions: manualCategorySuggestions,
     );
     if (label == null || !context.mounted) return false;
   }
@@ -79,7 +227,8 @@ class _ManualActivityPageState extends State<ManualActivityPage> {
   final TextEditingController _hours = TextEditingController();
   final TextEditingController _minutes = TextEditingController();
   final TextEditingController _seconds = TextEditingController();
-  final TextEditingController _elevation = TextEditingController(text: '0');
+  // Blank = not entered (no `elevation_gain_m` key), never an implied 0.
+  final TextEditingController _elevation = TextEditingController();
   final TextEditingController _avgHr = TextEditingController();
   final TextEditingController _notes = TextEditingController();
 
@@ -122,9 +271,6 @@ class _ManualActivityPageState extends State<ManualActivityPage> {
 
   // ---- parsing / validation ---------------------------------------------------
 
-  static double? _number(String text) =>
-      double.tryParse(text.trim().replaceAll(',', '.'));
-
   static int _whole(String text) => int.tryParse(text.trim()) ?? 0;
 
   int get _durationSeconds =>
@@ -138,49 +284,33 @@ class _ManualActivityPageState extends State<ManualActivityPage> {
     return '${c[0].toUpperCase()}${c.substring(1)}';
   }
 
-  /// Live pace preview (`m:ss /km`), or null until distance and duration are
-  /// both valid.
+  /// Live pace preview (`m:ss /km`), or null until a valid distance and
+  /// duration are both entered (a blank distance has no pace).
   String? get _pacePreview {
-    final d = _number(_distance.text);
+    final d = _parseNumber(_distance.text);
     final secs = _durationSeconds;
-    if (d == null || d <= 0 || secs < 1) return null;
+    if (d == null || !d.isFinite || d <= 0 || secs < 1) return null;
     final perKm = (secs / d).round();
     return '${perKm ~/ 60}:${(perKm % 60).toString().padLeft(2, '0')}';
   }
 
   /// Validates every field, showing inline errors. True when all pass.
   bool _validate() {
-    final d = _number(_distance.text);
-    final secs = _durationSeconds;
-    final elevationText = _elevation.text.trim();
-    final e = elevationText.isEmpty ? null : _number(elevationText);
-    final hrText = _avgHr.text.trim();
-    final hr = hrText.isEmpty ? null : int.tryParse(hrText);
-
-    final distanceError =
-        (d == null || d <= 0) ? 'Enter a distance above 0 km' : null;
-    final durationError =
-        secs < 1 ? 'Enter a duration of at least 1 second' : null;
-    final elevationError = (e == null || e < 0)
-        ? 'Enter the elevation gain in metres (0 if flat)'
-        : null;
-    final hrError = hrText.isNotEmpty && (hr == null || hr <= 0 || hr > 300)
-        ? 'Enter a heart rate from 1 to 300, or leave empty'
-        : null;
-    final rpeError = _rpe == null ? 'Set the session RPE (1-10)' : null;
-
+    final errors = validateManualActivity(
+      distanceText: _distance.text,
+      durationSeconds: _durationSeconds,
+      elevationText: _elevation.text,
+      avgHrText: _avgHr.text,
+      rpe: _rpe,
+    );
     setState(() {
-      _distanceError = distanceError;
-      _durationError = durationError;
-      _elevationError = elevationError;
-      _hrError = hrError;
-      _rpeError = rpeError;
+      _distanceError = errors.distance;
+      _durationError = errors.duration;
+      _elevationError = errors.elevation;
+      _hrError = errors.avgHr;
+      _rpeError = errors.rpe;
     });
-    return distanceError == null &&
-        durationError == null &&
-        elevationError == null &&
-        hrError == null &&
-        rpeError == null;
+    return errors.isValid;
   }
 
   // ---- actions ----------------------------------------------------------------
@@ -198,31 +328,19 @@ class _ManualActivityPageState extends State<ManualActivityPage> {
       // Never in the future (the pickers clamp; this is the final check).
       final start = _start.isAfter(now) ? truncateToMinute(now) : _start;
 
-      final distanceKm =
-          double.parse(_number(_distance.text)!.toStringAsFixed(2));
-      final secs = _durationSeconds;
-      final hrText = _avgHr.text.trim();
-      final title = '${distanceKm.toStringAsFixed(1)} km $_label';
-
-      final draft = ActivitySession(
+      final activity = buildManualActivity(
         category: _category,
-        date: DateTime(start.year, start.month, start.day),
-        timeStarted: DateFormat('HH:mm').format(start),
-        startTime: start.toUtc(),
-        dateLogged: now.toUtc(),
-        // Canonical duration, plus the derived minutes the parser still needs.
-        durationSeconds: secs,
-        durationMin: (secs / 60 * 10).round() / 10,
-        distanceKm: distanceKm,
-        elevationGainM: _number(_elevation.text)!,
-        avgHr: hrText.isEmpty ? null : int.parse(hrText),
+        label: _label,
+        start: start,
+        now: now,
+        durationSeconds: _durationSeconds,
+        distanceText: _distance.text,
+        elevationText: _elevation.text,
+        avgHrText: _avgHr.text,
         rpe: _rpe,
-        gpxFileName: null,
-        tags: ['fitness/$_category'],
-        title: title,
-        bodyText: _notesAsBullets(_notes.text),
+        notes: _notes.text,
       );
-      final activity = draft.copyWith(avgPaceMinKm: draft.computedPaceMinKm);
+      final title = activity.title;
 
       await services.vault.saveActivity(activity);
 
@@ -267,15 +385,6 @@ class _ManualActivityPageState extends State<ManualActivityPage> {
       ),
     );
     if ((leave ?? false) && mounted) Navigator.of(context).pop(false);
-  }
-
-  /// Plain text lines -> Markdown bullets, matching `activity_schema.md`.
-  static String _notesAsBullets(String text) {
-    final lines = text
-        .split('\n')
-        .map((l) => l.trim().replaceFirst(RegExp(r'^[-*]\s+'), ''))
-        .where((l) => l.isNotEmpty);
-    return lines.map((l) => '- $l').join('\n');
   }
 
   void _markTouched() {
@@ -330,7 +439,7 @@ class _ManualActivityPageState extends State<ManualActivityPage> {
             ),
             _field(
               controller: _distance,
-              label: 'Distance (km)',
+              label: 'Distance (km, optional)',
               error: _distanceError,
               decimal: true,
               onChanged: () => setState(() => _distanceError = null),
@@ -348,7 +457,7 @@ class _ManualActivityPageState extends State<ManualActivityPage> {
             const SizedBox(height: 12),
             _field(
               controller: _elevation,
-              label: 'Elevation gain (m)',
+              label: 'Elevation gain (m, optional)',
               error: _elevationError,
               decimal: true,
               onChanged: () => setState(() => _elevationError = null),
@@ -490,10 +599,20 @@ class _ManualActivityPageState extends State<ManualActivityPage> {
           Row(
             children: [
               const Text(
-                'Session RPE',
+                'Session RPE (optional)',
                 style: TextStyle(fontSize: 12, color: AppColors.textDim),
               ),
               const Spacer(),
+              if (rpe != null)
+                TextButton(
+                  onPressed: _saving
+                      ? null
+                      : () => setState(() {
+                            _rpe = null;
+                            _rpeError = null;
+                          }),
+                  child: const Text('Clear'),
+                ),
               Text(
                 rpe == null ? '\u2013' : formatDecimal(rpe),
                 style: TextStyle(
