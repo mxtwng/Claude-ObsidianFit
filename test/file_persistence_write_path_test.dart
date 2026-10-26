@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:obsidian_fit/models/Models.dart';
 import 'package:obsidian_fit/services/FilePersistenceService.dart';
 import 'package:path/path.dart' as p;
 
