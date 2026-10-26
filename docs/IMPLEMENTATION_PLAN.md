@@ -51,7 +51,7 @@ Do not infer technique from set order or values. Ordinary sets are the default. 
 4. Verify one finish produces one Markdown note and no GPX file.
 
 ### P1 — Logger usability and semantics
-5. Trace the reported grey `1` indicator to its source and intended meaning before changing it.
+5. Preserve the existing set-number indicator: the grey `1` is the set number; visual type styling is intentional. No change requested.
 6. Inspect current workout draft/logger/timer before implementing set-by-set and exercise-by-exercise workflows or changing rest behavior.
 7. Keep manual logging free of live-only controls while retaining useful optional tools.
 
