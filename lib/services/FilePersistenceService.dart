@@ -575,7 +575,7 @@ class FilePersistenceService {
     final segments = fileName.split('/');
     final invalid = fileName.trim().isEmpty ||
         fileName.contains('\\') ||
-        fileName.contains('\\u0000') ||
+        fileName.contains('\u0000') ||
         p.isAbsolute(fileName) ||
         _driveLetterPrefix.hasMatch(fileName) ||
         segments.length != 2 ||
