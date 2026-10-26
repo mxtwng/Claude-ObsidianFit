@@ -18,7 +18,7 @@ V2 is a refinement of workflows and domain semantics, not a claim that the curre
 - Markdown/GPX are user-owned durable records; SQLite is a rebuildable cache.
 
 ## Architecture and main flows
-See `docs/REPO_MAP.md` for module and test navigation.
+See `docs/REPO_MAP.md` for module and test navigation, and `docs/AUDIT_FOLLOWUPS.md` for audit findings, failsafe tasks, and Android/Linux validation.
 
 1. UI gets services from `AppScope` / `AppServices`.
 2. `FilePersistenceService` parses/renders models and writes Markdown/GPX.
