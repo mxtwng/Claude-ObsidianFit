@@ -51,7 +51,7 @@ Do not infer technique from set order or values. Ordinary sets are the default. 
 4. Verify one finish produces one Markdown note and no GPX file.
 
 ### P1 — Logger usability and semantics
-5. Trace the reported grey \`1\` indicator to its source and intended meaning before changing it.
+5. Trace the reported grey `1` indicator to its source and intended meaning before changing it.
 6. Inspect current workout draft/logger/timer before implementing set-by-set and exercise-by-exercise workflows or changing rest behavior.
 7. Keep manual logging free of live-only controls while retaining useful optional tools.
 
@@ -61,7 +61,7 @@ Do not infer technique from set order or values. Ordinary sets are the default. 
 10. Compare implementation against template/history separation, activity types, search/filtering, and correction requirements; prioritize evidenced gaps over speculative rewrites.
 
 ## Recommended workflow
-1. Read \`CLAUDE.md\`, this plan, \`docs/CONTEXT.md\`; check git status and latest commit.
+1. Read `CLAUDE.md`, this plan, `docs/CONTEXT.md`; check git status and latest commit.
 2. Trace the real UI path through model, persistence, re-indexing, and tests.
 3. Implement one coherent feature slice, including all layers required by the agreed behavior.
 4. Add focused regression tests; preserve baseline schema fixtures.
