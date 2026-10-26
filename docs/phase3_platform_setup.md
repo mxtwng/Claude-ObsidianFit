@@ -7,14 +7,9 @@ permissions, the Syncthing vault layout, and how to test on a device.
 
 ## 1. Android
 
-Apply the ready-made manifest:
+Use `docs/platform/AndroidManifest.reference.xml` as a commented reference for the required permissions and foreground-service declaration. The app's `android/app/src/main/AndroidManifest.xml` already exists: **do not blindly overwrite it**. Compare the reference with the checked-in manifest and merge only missing or intentionally changed entries.
 
-```bash
-cp docs/platform/AndroidManifest.reference.xml \
-   android/app/src/main/AndroidManifest.xml
-```
-
-It is commented line by line. Summary of what it declares and why:
+Summary of what the reference declares and why:
 
 | Permission | Why |
 |---|---|
