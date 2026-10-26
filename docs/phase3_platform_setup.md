@@ -57,7 +57,9 @@ current Android Gradle Plugin and Kotlin). If Gradle reports a higher NDK
 version, set it in `android/app/build.gradle(.kts)` as the error message says.
 `wakelock_plus` itself needs no permissions.
 
-## 2. iOS
+## 2. iOS (deferred; not a current test target)
+
+The checked-in `ios/Runner/Info.plist` currently does not contain the location/Bluetooth usage descriptions and background-mode entries listed below. This section is a future setup checklist, not evidence that iOS recording currently works. Do not spend current validation effort on iOS; when iOS support is picked up, reconcile these entries with the current plugins and test on hardware.
 
 Add to `ios/Runner/Info.plist`:
 
@@ -112,13 +114,11 @@ Notes:
   *.tmp
   ```
 * Hidden folders (`.obsidian`, `.stfolder`) are skipped by the re-indexer.
-* **Known gap:** Syncthing conflict copies
-  (`name.sync-conflict-<date>-<id>.md`) are ordinary `.md` files with valid
-  frontmatter, so the re-indexer currently indexes them as extra sessions.
-  Resolve or delete conflicts in Syncthing, or add a filter in
-  `FilePersistenceService.listMarkdownFiles`.
+* Syncthing conflict copies (`name.sync-conflict-<date>-<id>.md`) are filtered by `FilePersistenceService.listMarkdownFiles()` and should not be indexed as sessions. Keep a regression test for this filter if that code changes.
 
 ## 4. Testing
+
+Current validation target: **Android and Linux only**. iOS configuration and device testing are deferred; do not interpret this guide as a claim that iOS is currently ready.
 
 ### Automated
 
@@ -134,7 +134,7 @@ not replace real-device validation: BLE, GPS/background lifecycle, platform
 permissions, notifications, and wake-lock behavior must be checked on target
 hardware.
 
-### On a device (Android)
+### On Android (current mobile target)
 
 1. `flutter run --release` (debug builds can behave differently with
    background services).
