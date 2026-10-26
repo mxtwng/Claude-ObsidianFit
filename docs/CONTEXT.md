@@ -4,8 +4,8 @@ _Last reviewed: 2026-10-26. This is an engineering checkpoint, not a substitute 
 
 ## Repository checkpoint
 - Repository: https://github.com/mxtwng/Claude-ObsidianFit
-- Reviewed baseline: `main` at `e5a6a620d1f60ab9ecccb102e9cd4e315063e6ff` — Support flexible manual activity logging.
-- This documentation refresh is being prepared on `docs/repository-context-refresh` for review; it should not be merged into main without authorization.
+- Reviewed baseline: `main` at `2f4d6fd76544adece0afd1eb4effa52ba6887991` — merge commit for PR #4, Refresh repository context and Claude implementation guidance.
+- The repository-context refresh has been merged into `main`; its source branch was deleted. This checkpoint is being refreshed on `docs/audit-followups-and-current-state`.
 - Current baseline supports gym logging, GPS-recorded outdoor activities, and manual/non-GPS activity logging.
 - A live elapsed timer for non-GPS activities is the next agreed feature; it is not present in the current start chooser.
 - The private full product masterplan is intentionally not duplicated in this repository.
@@ -72,7 +72,8 @@ Expected behavior:
 - Do not change the model/schema unless inspection proves a real gap.
 
 ## Open gaps; do not silently decide
-- Trace the reported grey `1` indicator before changing it.
+- The grey `1` in a workout set row is the set number. Its color/type styling is intentional; do not change it without a new, specific design request.
 - Do not turn legacy W/N/D/F markers into a universal set taxonomy.
 - Generalized activity planning/scheduling needs its own audit/design; the current weekly rotation is mostly free text.
-- GPS/background service, BLE, permission, notification, wake-lock, and iOS behavior still require target-device verification.
+- Current user testing targets are Android and Linux only. GPS/background service, BLE, permissions, notifications, and wake-lock behavior require Android device verification; Linux should receive normal desktop build/run and regression checks. iOS testing is explicitly deferred for later.
+- Static audit follow-ups are tracked in `docs/AUDIT_FOLLOWUPS.md`; they are tasks to validate/fix, not claims that defects have been reproduced.
