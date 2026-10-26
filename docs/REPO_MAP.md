@@ -1,6 +1,6 @@
 # Repository Map
 
-Navigation aid for implementation work. Confirm behavior in source and tests before editing.
+Navigation aid for implementation work. Confirm behavior in source and tests before editing. Current test targets are Android and Linux; iOS is deferred. See `docs/AUDIT_FOLLOWUPS.md` for verified stale-doc corrections and actionable follow-up tasks.
 
 ## Entry points
 
