@@ -38,7 +38,7 @@ Vault folders: `Workouts/`, `Activities/`, `Tracks/`, `Plans/`. Android prefers 
 - `lib/ui/app_services.dart`: shared service bundle.
 
 ## Data and time semantics
-- `ActivitySession` supports `durationSeconds` (canonical whole seconds for manual entries), `durationMin` (compatibility/index field), UTC `startTime` and `dateLogged`, optional metrics/GPX, and unknown-frontmatter preservation.
+- `ActivitySession` supports `durationSeconds` (canonical whole seconds when available), `durationMin` (compatibility/index field), UTC `startTime` and `dateLogged`, optional metrics/GPX, and unknown-frontmatter preservation. Manual entries write seconds; legacy GPS notes may only have minutes; live non-GPS timed activity should write both.
 - `WorkoutSession` supports start/date-logged timestamps and exercise entries. `SetEntry` supports external or bodyweight-plus-added load, reps or hold duration, RPE, plyometric values, and legacy W/N/D/F markers.
 - `PlanProgram` stores plan metadata, free-text weekly rotation, habit checklist, and preserved extra content.
 - `start_time` and `date_logged` are UTC instants. Live GPS/gym sessions currently write both from session start. Retro/manual entries use the historical start and actual save time.
