@@ -143,4 +143,21 @@ void main() {
     await expectOutsideUnchanged();
     expect(await Link(target.path).exists(), isTrue);
   });
+
+  test('rejects a symlink at the atomic temporary path', () async {
+    final tempPath = p.join(
+      vaultDir.path,
+      FilePersistenceService.workoutsFolder,
+      'linked.md.tmp',
+    );
+    await Link(tempPath).create(outsideFile.path);
+
+    await expectLater(
+      vault.saveWorkout(workout, relativePath: 'Workouts/linked.md'),
+      throwsA(isA<FileSystemException>()),
+    );
+
+    await expectOutsideUnchanged();
+    expect(await Link(tempPath).exists(), isTrue);
+  });
 }
