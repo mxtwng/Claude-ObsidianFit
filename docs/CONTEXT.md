@@ -4,8 +4,8 @@ _Last reviewed: 2026-10-26. This is an engineering checkpoint, not a substitute 
 
 ## Repository checkpoint
 - Repository: https://github.com/mxtwng/Claude-ObsidianFit
-- Reviewed baseline: `main` at `2f4d6fd76544adece0afd1eb4effa52ba6887991` — merge commit for PR #4, Refresh repository context and Claude implementation guidance.
-- The repository-context refresh has been merged into `main`; its source branch was deleted. This checkpoint is being refreshed on `docs/audit-followups-and-current-state`.
+- Reviewed baseline: `main` at `7dba1371a9a44f69a1f5368af8a4b5adc80f8bac` — current tree after PR #5 and documentation-index housekeeping.
+- PR #5 is merged. This file describes the current main baseline; update the checkpoint after meaningful implementation milestones rather than tying it to a temporary documentation branch.
 - Current baseline supports gym logging, GPS-recorded outdoor activities, and manual/non-GPS activity logging.
 - A live elapsed timer for non-GPS activities is the next agreed feature; it is not present in the current start chooser.
 - The private full product masterplan is intentionally not duplicated in this repository.
@@ -18,7 +18,7 @@ V2 is a refinement of workflows and domain semantics, not a claim that the curre
 - Markdown/GPX are user-owned durable records; SQLite is a rebuildable cache.
 
 ## Architecture and main flows
-See `docs/REPO_MAP.md` for module and test navigation, and `docs/AUDIT_FOLLOWUPS.md` for audit findings, failsafe tasks, and Android/Linux validation.
+See `docs/README.md` for the documentation index, `docs/REPO_MAP.md` for module/test navigation, `docs/platform/README.md` for platform setup, and `docs/AUDIT_FOLLOWUPS.md` for outstanding audit tasks.
 
 1. UI gets services from `AppScope` / `AppServices`.
 2. `FilePersistenceService` parses/renders models and writes Markdown/GPX.
