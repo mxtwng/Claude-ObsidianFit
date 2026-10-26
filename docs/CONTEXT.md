@@ -1,92 +1,78 @@
 # ObsidianFit Repository Context
 
-_Last updated: 2026-10-25. This file is an engineering checkpoint, not a substitute for reading relevant code or running checks._
+_Last reviewed: 2026-10-26. This is an engineering checkpoint, not a substitute for source inspection._
 
-## Current direction
-
-ObsidianFit is moving from the Demo 1 maintenance checkpoint into V2 refinement. The core six-phase feature roadmap was previously implemented, but that does not mean the existing UX or every workflow is final. Follow [`docs/IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) for the agreed direction and priorities.
-
+## Repository checkpoint
 - Repository: https://github.com/mxtwng/Claude-ObsidianFit
-- Main branch: `main`.
-- The private, full product masterplan is intentionally not stored in this repository. This file and the implementation plan contain the information needed for implementation work.
-- V2 refinement is just beginning. The latest application-code change fixes the manual/live rest-timer boundary; broader logger and UX requirements remain to be investigated against the current code.
-- PR #2 (merged): https://github.com/mxtwng/Claude-ObsidianFit/pull/2 — “Fix rest timer boundary for manual workouts”.
+- Reviewed baseline: `main` at `e5a6a620d1f60ab9ecccb102e9cd4e315063e6ff` — Support flexible manual activity logging.
+- This documentation refresh is being prepared on `docs/repository-context-refresh` for review; it should not be merged into main without authorization.
+- Current baseline supports gym logging, GPS-recorded outdoor activities, and manual/non-GPS activity logging.
+- A live elapsed timer for non-GPS activities is the next agreed feature; it is not present in the current start chooser.
+- The private full product masterplan is intentionally not duplicated in this repository.
 
-## Architecture and data integrity
+## Product direction
+V2 is a refinement of workflows and domain semantics, not a claim that the current UI is final.
+- Activity-first, not gym-only: strength, calisthenics, running, walking, cycling, hiking, martial arts, yoga, stretching/mobility, recreation, and custom categories.
+- Plans guide a day; they must not overwrite what actually happened. Simple activities should not require reusable workout templates.
+- Planning, live tracking, and manual logging of completed sessions are distinct.
+- Markdown/GPX are user-owned durable records; SQLite is a rebuildable cache.
 
-- Flutter provides the user interface.
-- Markdown notes with YAML frontmatter and GPX 1.1 XML files are the durable source of truth.
-- Drift/SQLite is a rebuildable read-cache for calendar, history, and analytics.
-- The vault re-indexer scans files to rebuild/refresh the cache. Hidden folders and Syncthing conflict copies should not be indexed as normal records.
-- Optional sync can be performed by the user with tools such as Syncthing or rsync; the app does not require a proprietary fitness-data cloud.
-- Typical vault layout:
+## Architecture and main flows
+See `docs/REPO_MAP.md` for module and test navigation.
 
-```text
-/Documents/ObsidianFit/
-├── Workouts/      # Gym session Markdown notes
-├── Activities/    # GPS or manually logged activity notes
-├── Tracks/        # GPX 1.1 route files
-└── Plans/         # Workout and mobility templates
-```
+1. UI gets services from `AppScope` / `AppServices`.
+2. `FilePersistenceService` parses/renders models and writes Markdown/GPX.
+3. `VaultReindexerService` scans `Workouts/`, `Activities/`, and `Plans/`, updating Drift.
+4. Calendar/history query the index; richer stats and PRs parse vault notes through `VaultStatsLoader`.
+5. The index can be rebuilt from the vault. Never treat SQLite as the only copy of a session.
 
-Do not break Markdown/GPX round-tripping, silently rewrite historical sessions when templates change, infer results from targets, or introduce destructive migration without explicit approval.
+Vault folders: `Workouts/`, `Activities/`, `Tracks/`, `Plans/`. Android prefers `/storage/emulated/0/Documents/ObsidianFit` when all-files access is available, then an external app directory, then app documents. Other platforms use the application documents directory.
+
+## Current entry points
+- `lib/ui/common/start_session_sheet.dart`: global Start chooser currently offers Gym workout and Outdoor activity only.
+- `lib/ui/common/log_past_session_sheet.dart`: past-date chooser; gym goes to the retro workout logger and other activity goes to manual non-GPS logging. Future dates are rejected.
+- `lib/ui/activity/manual_activity_page.dart`: typed duration and optional metrics/notes; no live timer or GPX.
+- `lib/ui/activity/activity_session_page.dart`: GPS-specific live recorder with location/track lifecycle, optional BLE HR, metrics/splits, optional GPX, note save, and re-index.
+- `lib/ui/workout/workout_session_page.dart` + `workout_draft.dart`: live and retro/manual gym logging. Historical/manual set changes must not start the live rest timer.
+- `lib/ui/common/schedule.dart`: reads free-text weekly rotation entries. Current calendar start treats a scheduled label as a suggested gym split; generalized activity scheduling is a product goal, not a shipped claim.
+- `lib/ui/app_services.dart`: shared service bundle.
+
+## Data and time semantics
+- `ActivitySession` supports `durationSeconds` (canonical whole seconds for manual entries), `durationMin` (compatibility/index field), UTC `startTime` and `dateLogged`, optional metrics/GPX, and unknown-frontmatter preservation.
+- `WorkoutSession` supports start/date-logged timestamps and exercise entries. `SetEntry` supports external or bodyweight-plus-added load, reps or hold duration, RPE, plyometric values, and legacy W/N/D/F markers.
+- `PlanProgram` stores plan metadata, free-text weekly rotation, habit checklist, and preserved extra content.
+- `start_time` and `date_logged` are UTC instants. Live GPS/gym sessions currently write both from session start. Retro/manual entries use the historical start and actual save time.
+- Manual activities write canonical `duration_seconds` plus derived `duration_min` rounded to one decimal. GPS/legacy activity notes may only have `duration_min`.
+- Blank optional fields mean unknown/not entered. An explicit elevation gain of zero is meaningful.
+- No GPX is valid for non-GPS activities; there must be no track file or route map.
 
 ## Recent implementation checkpoint
+The baseline includes flexible manual non-GPS activity logging for categories such as Run, Ride, Walking, Hike, Taekwondo, Boxing, Yoga, and Stretching. Duration is required; distance, elevation, average HR, RPE, and notes are optional; pace is derived only when distance is supplied.
 
-### Manual/live rest-timer boundary — merged
+The manual/live rest-timer boundary is covered by `test/rest_timer_boundary_test.dart`: historical/manual set toggles must not start rest, while live set completion still does.
 
-The previous bug was in `lib/ui/workout/workout_session_page.dart`: checking a completed set could start the rest timer even for a historical/manual workout.
+### Validation provenance
+Owner-reported local validation after the manual activity logging change: `flutter analyze` reported no issues and `flutter test` passed all 382 tests. This GitHub documentation session did not run those commands. Do not describe them as freshly verified; there is no claim of complete real-device validation or automated CI coverage.
 
-The merged fix checks `_draft.isManual` after toggling a set. Historical/manual set completion returns without starting live rest; active live set completion retains the rest-timer behavior. The check reads the current draft state on every toggle, so backdating a session changes behavior immediately.
+## Next agreed task: live timed activity without GPS
+Add a third global Start choice, separate from the existing flows:
+- Gym workout: existing set/rep logger and live-only rest behavior.
+- Outdoor activity: existing GPS recorder.
+- Timed activity: free-text category prompt, then a lightweight elapsed timer for TKD, boxing, yoga, stretching, walking, or another user-defined activity.
 
-Regression coverage in `test/rest_timer_boundary_test.dart` covers:
-- Checking, unchecking, and rechecking a set in a manual/backdated workout does not start rest.
-- Checking a set in a live workout still starts rest.
-- Calling `setStart()` changes the draft to manual mode.
+Expected behavior:
+- Capture start time automatically; display elapsed active time.
+- Pause/resume excludes paused intervals.
+- Compute elapsed duration from timestamps plus accumulated paused time, never from timer tick count; ticks only refresh the UI.
+- Finish saves exactly one `ActivitySession` through the existing vault route, with exact `durationSeconds`, compatible `durationMin`, start/date metadata, `fitness/<category>` tag, and no GPX.
+- Discard saves nothing.
+- No GPS permission, GPX, sets/reps, or rest timer.
+- Manual/past activity logging remains a typed-duration flow.
+- Request re-indexing after a successful save; re-index failure must not undo the note.
+- Do not change the model/schema unless inspection proves a real gap.
 
-Owner-run validation on the PR branch before merge:
-- `dart format lib/ui/workout/workout_session_page.dart test/rest_timer_boundary_test.dart` — 2 files checked, 0 changes.
-- `flutter analyze` — no issues found.
-- `flutter test` — all 291 tests passed, including the new regression tests.
-
-The owner then fast-forwarded local `main` from `origin/main`; the merge included the fix and test file. These are reported command results from the PR branch, not a claim that the commands were rerun after merging.
-
-## Important implementation facts to verify before changing
-
-- The codebase contains a backdated/manual workout session path (`startRetroWorkoutSession()`) and a `WorkoutDraft` manual mode. This does not by itself prove the flow is discoverable or works end-to-end.
-- **Next priority:** inspect manual gym logging from its actual UI entry point through saving a session. Report concrete findings with file/line references before changing code; do not assume the flow is absent or broken without evidence.
-- Calendar past-date entry has been an entry point for backdated gym logging; inspect the actual UI before asserting that manual logging is unavailable.
-- Existing set markers include W/N/D/F, but V2 does not mandate this taxonomy. Dropsets, supersets, and circuits are grouping/technique concepts and should not be collapsed into a universal set-type enum without a deliberate design decision.
-- An unexplained grey `1` indicator was reported. Investigate its source and intended semantics before changing it.
-- The timer-boundary regression now has UI-level tests. Continue to add focused tests for future behavior changes, especially persistence, date/time handling, and manual versus live logging.
-
-These are leads from prior inspection, not a substitute for current code evidence.
-
-## Validation baseline and caveats
-
-The latest owner-reported validation for the current implementation, on the PR branch immediately before merge:
-- `dart format` on the two touched Dart files: 0 changes.
-- `flutter analyze`: no issues found.
-- `flutter test`: 291 tests passed.
-
-Do not claim these were rerun unless you actually run them. Automated tests do not replace Android/iOS real-device checks for GPS, background service lifecycle, BLE, notifications, permissions, or wake-lock behavior.
-
-For Dart/Flutter changes, run the relevant tests, then as appropriate:
-
-```bash
-dart format <touched Dart files>
-flutter analyze
-flutter test
-```
-
-Run analyzer and tests separately during diagnosis so one failing command does not prevent the other from running.
-
-## Multi-agent development workflow
-
-- This repository is Claude's implementation context. Do not ask for, recreate, or store the full private product masterplan here.
-- Read `CLAUDE.md` for working rules and `docs/IMPLEMENTATION_PLAN.md` for requirements.
-- Read narrowly: start with `git status --short --branch` and `git log -1 --oneline`, then inspect only relevant files.
-- Implement one scoped task at a time. Do not launch broad redesigns or audits without a specific task.
-- Preserve user changes and data. Never recommend broad destructive cleanup as routine.
-- Report exact files changed, actual validation performed, failures remaining, and commit hash when known.
-- Update this context after meaningful implementation milestones, not after every trivial edit.
+## Open gaps; do not silently decide
+- Trace the reported grey `1` indicator before changing it.
+- Do not turn legacy W/N/D/F markers into a universal set taxonomy.
+- Generalized activity planning/scheduling needs its own audit/design; the current weekly rotation is mostly free text.
+- GPS/background service, BLE, permission, notification, wake-lock, and iOS behavior still require target-device verification.

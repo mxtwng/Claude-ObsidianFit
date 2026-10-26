@@ -2,7 +2,7 @@
 
 # ObsidianFit
 
-**An open-source, local-first fitness app combining GPS activity tracking and gym workout logging through a GUI-over-Markdown architecture.**
+**An open-source, local-first fitness tracker with a GUI over user-owned Markdown and GPX files.**
 
 ![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-%5E3.5-0175C2?logo=dart&logoColor=white)
@@ -12,77 +12,71 @@
 
 </div>
 
-ObsidianFit puts a native, high-contrast fitness interface over files you own. Workout history is stored as Markdown with YAML frontmatter, and GPS tracks are stored as GPX 1.1 XML. The app uses a Drift SQLite database as a rebuildable read-cache rather than making a proprietary database the source of truth.
+ObsidianFit puts a fitness interface over files you own. Gym sessions and activities are stored as Markdown with YAML frontmatter; GPS routes are stored as GPX 1.1 XML. Drift/SQLite accelerates calendar, history, and dashboard queries but is a **rebuildable read cache**, not the source of truth.
 
-> **Project status:** The six-phase Demo 1 feature roadmap has been implemented, and the project is moving into V2 refinement. Existing behavior and UI are a starting point, not automatically the final design. See [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) for implementation priorities and [`docs/CONTEXT.md`](docs/CONTEXT.md) for engineering context.
+> **Project status:** The original six-phase feature roadmap is implemented and the project is in V2 refinement. The existing UI is not automatically the final design. See [the implementation plan](docs/IMPLEMENTATION_PLAN.md), [engineering context](docs/CONTEXT.md), and [repository map](docs/REPO_MAP.md).
 
-> **Demo 1 verification (2026-10-24):** The developer's latest local run reports `flutter analyze` with no issues and `flutter test` with all 288 tests passing. These are local results, not a claim of automated CI coverage or full real-device validation.
+> **Verification provenance:** On 2026-10-26 the developer reported a local run with `flutter analyze` clean and all 382 tests passing after the flexible manual activity logging work. These were owner-reported results, not run by this documentation update. They do not establish automated CI coverage or complete real-device validation.
 
 ## Why ObsidianFit?
 
-- **Your data stays yours.** Workouts and activities are ordinary files that can be read, backed up, synced, and queried outside the app.
-- **GUI over Markdown.** Record and review sessions through the app; open the same vault in [Obsidian](https://obsidian.md) when you want direct access to the notes.
-- **Local-first syncing.** Use tools such as Syncthing or rsync to copy the vault between devices without depending on a proprietary fitness-data cloud.
-- **Fast views, rebuildable cache.** Drift/SQLite supports calendar, history, and dashboard queries. The vault re-indexer can repopulate the cache from the flat files.
+- **Your data stays yours.** Notes are plain files you can inspect, back up, sync, and query outside the app.
+- **GUI over Markdown.** Record and review sessions in the app, then open the same vault in [Obsidian](https://obsidian.md).
+- **Local-first syncing.** Sync the vault yourself with tools such as Syncthing or rsync; the app does not require a proprietary fitness-data cloud.
+- **Recoverable index.** The vault re-indexer can rebuild the SQLite cache from Markdown notes.
 
-## Features
+## Features in the current baseline
 
 ### Gym logging
+- Live workout sessions organized into exercises and sets.
+- External-load and bodyweight/weighted-bodyweight sets.
+- Reps and timed isometric holds.
+- Optional RPE and plyometric box-height/contact-time fields.
+- Rest timer, plate-loading calculator, and screen wake-lock during active logging.
+- Retro/manual workout entry and routine-aware suggestions.
+- Manual/historical set completion does not start the live rest timer.
 
-- Workout sessions organized into exercises and sets.
-- Legacy set markers exist in the current implementation; their role is being reviewed as part of V2.
-- Record load, reps, and optional RPE where applicable.
-- Weighted-bodyweight sets (`BW+Xkg`) with only the external added load counted toward tonnage.
-- Timed isometric holds, including planks and static skills.
-- Plyometric fields for box height and contact time.
-- Haptic rest timer, plate-loading calculator, and screen wake-lock during active logging.
-- Backdated workouts and routine-aware workout suggestions.
+### Activities
+- GPS-recorded outdoor activities with GPX 1.1 tracks and segmented pause/resume recording.
+- MapLibre route visualization, live splits, pace/elevation profiles, and ghost-route overlays.
+- Optional Bluetooth LE heart-rate monitor using the standard Heart Rate Service (`0x180D`).
+- Background tracking and a persistent recording notification where supported by the platform.
+- Manual non-GPS activity logging for distance sports and activities such as Taekwondo, boxing, yoga, stretching, and walking. Duration is required; distance, elevation, heart rate, RPE, and notes are optional.
+- Manual/past activity entry is separate from live tracking. A **live elapsed timer for non-GPS activity is planned next and is not present in the reviewed baseline**.
 
-### Outdoor activities
-
-- GPX 1.1 track recording, parsing, and writing.
-- GPS track segments preserve pauses rather than drawing a false straight line between segments.
-- MapLibre GL route visualization.
-- Bluetooth LE heart-rate monitors using the standard Heart Rate Service (`0x180D`).
-- Background tracking support and a persistent recording notification where supported by the platform.
-- Manual outdoor activity logging without a GPX track.
-- Live 1 km / 1 mi split calculation, split tables, and pace/elevation profiles.
-- Ghost-route overlays from saved `.gpx` files in `Tracks/`.
-
-### History and analytics
-
-- Monthly calendar with workout/activity markers, day previews, and monthly totals.
-- History list and session review sheets.
+### Calendar, history, and analytics
+- Monthly calendar with session markers, day previews, and monthly totals.
+- History list and session review.
 - Retroactive logging from past calendar dates.
-- Personal-record tracking, including estimated 1RM bench, maximum plank duration, longest run, and fastest 5K.
-- Weekly multi-sport statistics for workout volume, activity distance, and mobility time.
+- Personal records including estimated bench 1RM, longest plank, longest run, and fastest 5K.
+- Weekly multi-sport statistics for lifting volume, activity distance, and mobility time.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
     UI[Flutter UI] -->|read queries| DB[(Drift / SQLite read cache)]
-    UI -->|write session files| VAULT[Markdown and GPX vault]
+    UI -->|write notes and tracks| VAULT[Markdown + GPX vault]
     VAULT --> INDEX[Vault re-indexer]
     INDEX -->|parse and refresh| DB
-    VAULT <-->|optional file sync| SYNC[Syncthing / rsync / desktop]
+    VAULT <-->|optional user-managed sync| SYNC[Syncthing / rsync / desktop]
 ```
 
-The key rule is that **flat files are the source of truth; SQLite is a disposable read-cache**. If the cache is lost or stale, it should be rebuildable by scanning and parsing the vault. The app filters hidden directories and Syncthing conflict copies so they do not become duplicate sessions.
+The rule is simple: **files are the durable source of truth; SQLite is disposable**. Hidden directories are filtered during indexing. Re-indexing should restore the database from the vault.
 
 ### Vault layout
 
-The app stores its vault in the device's `Documents/ObsidianFit/` directory where platform permissions allow it:
+The default vault is named `ObsidianFit` in an application documents directory. On Android, the service prefers `/storage/emulated/0/Documents/ObsidianFit` when all-files access is granted, otherwise it may use an app-specific external or documents directory.
 
 ```text
-/Documents/ObsidianFit/
-├── Workouts/      # Gym sessions as Markdown files
-├── Activities/    # GPS and manually logged activity notes
-├── Tracks/        # GPX 1.1 route files
-└── Plans/         # Workout routines and mobility templates
+ObsidianFit/
+├── Workouts/   # Gym session Markdown
+├── Activities/ # Activity Markdown, GPS or non-GPS
+├── Tracks/     # GPX 1.1 route files
+└── Plans/      # Workout/mobility program notes
 ```
 
-Example workout note:
+### Example workout note
 
 ```markdown
 ---
@@ -99,30 +93,29 @@ duration_min: 52
 - Set 3: BW+0kg | Hold: 60s | Type: N
 ```
 
-Refer to [`schemas/`](schemas/) for the project's note and set-format specifications.
+See [schemas/](schemas/) for baseline note examples and extension contracts. The baseline schema examples are also test fixtures; extensions are documented in the Phase 5 sidecar schemas.
 
-## Technology stack
+## Technology
 
-| Technology / package | Role |
+| Technology | Role |
 |---|---|
 | Flutter / Dart | Cross-platform UI and application logic |
-| Drift (`drift`, `drift_flutter`) | SQLite read-cache and database access |
-| `yaml` and `FrontMatterCodec` | Markdown YAML frontmatter parsing and writing |
-| `xml` | GPX 1.1 parsing and serialization |
-| `maplibre_gl` | Route map and polyline rendering |
-| `flutter_blue_plus` | BLE heart-rate monitor scanning and connection |
-| `geolocator`, `flutter_background_service` | Location tracking and background-service support |
-| `wakelock_plus` | Prevents display timeout during active sessions |
-| `permission_handler`, `flutter_local_notifications` | Runtime permissions and recording notification |
+| Drift / SQLite | Rebuildable query cache |
+| YAML + `FrontMatterCodec` | Markdown frontmatter parsing and encoding |
+| `xml` | GPX parsing and serialization |
+| `maplibre_gl` | Route visualization |
+| `flutter_blue_plus` | BLE heart-rate monitor |
+| `geolocator`, `flutter_background_service` | Location recording and background tracking |
+| `wakelock_plus` | Keep display awake during active sessions |
+| `permission_handler`, `flutter_local_notifications` | Platform permissions and recording notification |
 
 ## Getting started
 
 ### Prerequisites
-
-- Flutter SDK with a Dart SDK compatible with the `^3.5.0` constraint in `pubspec.yaml`.
-- **Android:** Android Studio, Android SDK, and a compatible Java toolchain.
-- **iOS:** macOS, Xcode, and CocoaPods.
-- **Linux desktop:** Flutter Linux dependencies, including `clang`, `cmake`, `ninja-build`, `pkg-config`, and GTK development headers.
+- Flutter SDK and Dart compatible with the `^3.5.0` constraint in `pubspec.yaml`.
+- **Android:** Android Studio, Android SDK, compatible Java toolchain.
+- **iOS:** macOS, Xcode, CocoaPods.
+- **Linux desktop:** Flutter Linux dependencies such as `clang`, `cmake`, `ninja-build`, `pkg-config`, and GTK development headers.
 
 ### Clone and fetch dependencies
 
@@ -134,7 +127,7 @@ flutter pub get
 
 ### Analyze and test
 
-Run these as separate commands when diagnosing a failure, so a non-zero analyzer exit does not prevent the test suite from running:
+Run these separately when diagnosing failures:
 
 ```bash
 flutter analyze
@@ -147,32 +140,25 @@ flutter test
 # Linux desktop
 flutter run -d linux
 
-# Connected Android device (use a release build when validating background behavior)
+# Connected Android device
 flutter run --release
 
-# Build an Android debug APK
+# Android debug APK
 flutter build apk --debug
 ```
 
-GPS, background-service behavior, BLE, notifications, and wake-lock behavior depend on platform permissions and vendor power-management policies. Verify them on the real target device, not only in unit tests or a desktop build. On Android, grant the required location, Bluetooth, and notification permissions when prompted. Consult [`docs/phase3_platform_setup.md`](docs/phase3_platform_setup.md) for platform setup and device-testing guidance.
+GPS, background services, BLE, notifications, permissions, and wake-lock behavior depend on platform lifecycle and device policies. Verify them on real target hardware; desktop/widget tests do not prove device behavior. See [platform setup and device testing](docs/phase3_platform_setup.md).
 
 ## Development status
 
-All six planned feature phases are implemented:
+The original six phases cover storage/indexing, gym UI/calendar, GPS/BLE, platform configuration, multi-discipline/manual logging, and outdoor analytics. V2 refinement remains active. Current priorities include live non-GPS timed activity, clearer activity-first entry points, robust manual/live boundaries, and separating plans from actual sessions.
 
-- [x] **Phase 1 — Storage foundation:** Markdown/GPX persistence, domain models, Drift cache, vault re-indexer.
-- [x] **Phase 2 — Gym UI and calendar:** dark UI, set logger, rest timer, plate calculator, calendar, history.
-- [x] **Phase 3 — GPS and BLE:** GPX engine, location tracking, BLE heart rate, MapLibre route display.
-- [x] **Phase 4 — Platform resilience:** platform configuration, permissions, wake-lock, conflict-file filtering.
-- [x] **Phase 5 — Multi-discipline and retroactive logging:** weighted bodyweight, holds, plyometrics, mobility-oriented logging, manual activities, backdating.
-- [x] **Phase 6 — Outdoor analytics:** splits, pace/elevation profiles, ghost routes, PR engine, weekly dashboard.
-
-The feature roadmap being complete does not mean every platform behavior is production-validated or that the existing UI is final. V2 refinement prioritizes correctness and regression prevention while improving manual/live logging, activity-first workflows, and separation between plans and actual sessions. Follow [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) for requirements and [`docs/CONTEXT.md`](docs/CONTEXT.md) for the current engineering checkpoint.
+Before implementing a task, read [CLAUDE.md](CLAUDE.md), [the implementation plan](docs/IMPLEMENTATION_PLAN.md), [engineering context](docs/CONTEXT.md), and [the repository map](docs/REPO_MAP.md). Requirements in planning documents are not proof a feature is already implemented; confirm behavior in source and tests.
 
 ## Contributing
 
-Bug reports and focused improvements are welcome. Keep changes narrow, preserve Markdown/GPX round-trip behavior, and add regression tests for changes to parsing, persistence, indexing, or calculations. Before submitting a change, run `dart format` on the touched Dart files, then run `flutter analyze` and `flutter test`.
+Prefer evidence-based, testable changes. Preserve Markdown/GPX round trips and historical data. Add regression tests for parsing, persistence, indexing, timing, and logger behavior. For Dart changes, format touched files, run focused tests, then run `flutter analyze` and `flutter test`. Clearly distinguish automated results from real-device verification.
 
 ## License
 
-Released under the MIT License. See [`LICENSE`](LICENSE).
+MIT. See [LICENSE](LICENSE).

@@ -5,9 +5,8 @@ Companion to `activity_schema.md`. That file is a **test fixture** (parsed by
 specified here instead. Everything in `activity_schema.md` stays valid. GPS
 recorded activities are unchanged.
 
-> **Status:** specification. `ActivitySession` does not model `duration_seconds`,
-> `rpe`, `start_time` or `date_logged` yet (see [Implementation notes](#implementation-notes)).
-> Unknown frontmatter keys already survive a round trip via `extraFrontmatter`.
+> **Status:** the Phase 5 activity fields described here are implemented in `ActivitySession`, `manual_activity_page.dart`, persistence, indexing, and tests. The live non-GPS timed activity flow is a separate planned feature; do not confuse it with manual/past logging.
+> Unknown frontmatter keys are preserved through `extraFrontmatter`.
 
 ---
 
@@ -180,11 +179,14 @@ gpx_file: null
 
 ---
 
-## Implementation notes
+## Implementation status and compatibility notes
 
-For the Phase 5 implementation (not done yet):
+The Phase 5 activity fields described above are implemented. Relevant code and tests:
 
-* `ActivitySession`: add `durationSeconds`, `rpe`, `startTime`, `dateLogged` to `knownKeys`, `toFrontmatter` and `fromFrontmatter`. Keep `gpxFileName` nullable, and make sure `extractWikilinkTarget` yields `null` for `null`, `""` and `"[[]]"`.
-* The Manual Activity Logger must validate: `duration_seconds >= 1` (the only required metric), and, **only when entered**, `distance_km > 0`, `elevation_gain_m >= 0`, `rpe` in 1-10, `avg_hr` positive. A blank optional field omits its key. The rules live in `validateManualActivity` / `buildManualActivity` (`lib/ui/activity/manual_activity_page.dart`).
-* Add round-trip tests with **new fixtures** (for example `test/fixtures/`), and keep `schemas/activity_schema.md` byte-identical so the existing tests stay valid.
-* The History and map views must handle activities with no GPX (no route preview).
+* Model/frontmatter: `lib/models/ActivitySession.dart`.
+* Manual logger and validation: `lib/ui/activity/manual_activity_page.dart`.
+* Markdown/GPX persistence: `lib/services/FilePersistenceService.dart`.
+* Read-cache indexing: `lib/services/vault_reindexer_service.dart` and `lib/services/app_database.dart`.
+* Regression and round-trip coverage: `test/manual_activity_logging_test.dart`, `test/phase5_round_trip_test.dart`, `test/round_trip_test.dart`, and `test/reindexer_test.dart`.
+
+Keep `schemas/activity_schema.md` as the baseline round-trip fixture unless intentionally changing its contract. Use new fixtures for additional cases. The next planned addition is a live non-GPS timer; it should reuse the activity model and save route unless inspection identifies a real schema gap. It must save no GPX and remain separate from the manual logger.

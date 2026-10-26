@@ -5,9 +5,7 @@ re-rendered byte-for-byte by `test/round_trip_test.dart`), so Phase 5 fields
 are specified here instead. Everything in `workout_schema.md` stays valid.
 New keys are optional, and notes without them keep parsing as before.
 
-> **Status:** specification. `SetEntry`, `WorkoutSession` and the set-line
-> regex do not parse these fields yet (see [Implementation notes](#implementation-notes)).
-> Unknown frontmatter keys already survive a round trip via `extraFrontmatter`.
+> **Status:** the Phase 5 workout fields described here are implemented in the domain models, Markdown parser/writer, and regression fixtures/tests. Unknown frontmatter keys are preserved through `extraFrontmatter`.
 
 ---
 
@@ -200,11 +198,14 @@ tags:
 
 ---
 
-## Implementation notes
+## Implementation status and compatibility notes
 
-For the Phase 5 implementation (not done yet):
+The Phase 5 workout extensions described above are implemented. Relevant code and tests:
 
-* `SetEntry`: add `isBodyweight`, `extraWeightKg`, `durationSeconds`, `boxHeightCm`, `contactTimeMs`; make `reps` nullable (exclusive with `durationSeconds`); extend `_line` and `toMarkdownLine`; update `volumeKg`.
-* `WorkoutSession`: add `start_time` and `date_logged` to `knownKeys`, `toFrontmatter`, `fromFrontmatter`.
-* Add round-trip tests per modality using **new fixtures** (for example `test/fixtures/`), and keep `schemas/workout_schema.md` byte-identical so the existing 51 tests stay valid.
-* The Drift index may need `start_time` and `date_logged` columns (a schema migration) if History should sort or flag by them.
+* Set data and Markdown line grammar: `lib/models/SetEntry.dart` and `lib/models/ExerciseEntry.dart`.
+* Session timestamps/frontmatter: `lib/models/WorkoutSession.dart`.
+* Parse/render and persistence: `lib/services/FilePersistenceService.dart`.
+* Drift cache/index: `lib/services/app_database.dart` and `lib/services/vault_reindexer_service.dart`.
+* Round-trip fixtures: `test/fixtures/phase5/`, covered by `test/phase5_round_trip_test.dart`; baseline fixture behavior is covered by `test/round_trip_test.dart`.
+
+Keep `schemas/workout_schema.md` as the baseline round-trip fixture unless intentionally changing its contract. Use sidecar docs and new fixtures for extensions. Any future schema or cache change must preserve legacy-note compatibility and include regression tests.

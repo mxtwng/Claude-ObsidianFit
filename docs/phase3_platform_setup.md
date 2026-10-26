@@ -3,28 +3,13 @@
 Everything the recording stack needs outside Dart code: Android and iOS
 permissions, the Syncthing vault layout, and how to test on a device.
 
-> **First-time setup.** This repo does not contain `android/` or `ios/` yet.
-> Generate them once; `flutter create` never overwrites existing files such as
-> `lib/` or `pubspec.yaml`:
->
-> ```bash
-> flutter create --platforms=android,ios --project-name obsidian_fit .
-> flutter pub get
-> git status   # confirm lib/ and pubspec.yaml are untouched
-> ```
->
-> Then apply the Android manifest and iOS plist entries below.
+> **Repository state:** this repository already contains `android/` and `ios/` platform projects. Do not regenerate them as routine setup; doing so can overwrite platform configuration. Review the checked-in manifests/plists and reference files below, then apply only the missing platform-specific settings for the target device.
 
 ## 1. Android
 
-Apply the ready-made manifest:
+Use `docs/platform/AndroidManifest.reference.xml` as a commented reference for the required permissions and foreground-service declaration. The app's `android/app/src/main/AndroidManifest.xml` already exists: **do not blindly overwrite it**. Compare the reference with the checked-in manifest and merge only missing or intentionally changed entries.
 
-```bash
-cp docs/platform/AndroidManifest.reference.xml \
-   android/app/src/main/AndroidManifest.xml
-```
-
-It is commented line by line. Summary of what it declares and why:
+Summary of what the reference declares and why:
 
 | Permission | Why |
 |---|---|
@@ -143,9 +128,11 @@ flutter analyze
 flutter test
 ```
 
-All of these are plain-Dart tests (GPX, round trip, re-indexer, plate math).
-The recording UI, BLE, background service and wake lock are not covered by
-them and need a real device.
+The suite includes pure-Dart/unit tests, persistence and round-trip tests, and
+Flutter widget tests for logger flows and timer boundaries. This still does
+not replace real-device validation: BLE, GPS/background lifecycle, platform
+permissions, notifications, and wake-lock behavior must be checked on target
+hardware.
 
 ### On a device (Android)
 
