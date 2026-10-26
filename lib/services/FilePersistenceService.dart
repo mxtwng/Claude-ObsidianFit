@@ -632,6 +632,13 @@ class FilePersistenceService {
     }
 
     final tmp = File('${target.path}.tmp');
+    if (await FileSystemEntity.type(tmp.path, followLinks: false) ==
+        FileSystemEntityType.link) {
+      throw FileSystemException(
+        'Vault temporary write path must not be a symbolic link',
+        tmp.path,
+      );
+    }
     await tmp.writeAsString(content, flush: true);
     return tmp.rename(target.path);
   }
