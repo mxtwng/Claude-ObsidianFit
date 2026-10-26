@@ -620,6 +620,17 @@ class FilePersistenceService {
       );
     }
 
+    // Existing symlink destinations are rejected even though rename would
+    // replace the link itself on some platforms. This keeps the write contract
+    // explicit and avoids platform-dependent behavior.
+    if (await FileSystemEntity.type(target.path, followLinks: false) ==
+        FileSystemEntityType.link) {
+      throw FileSystemException(
+        'Vault write destination must not be a symbolic link',
+        fileName,
+      );
+    }
+
     final tmp = File('${target.path}.tmp');
     await tmp.writeAsString(content, flush: true);
     return tmp.rename(target.path);
