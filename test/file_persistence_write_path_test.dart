@@ -88,7 +88,6 @@ void main() {
       outsideFile.path,
       '/tmp/escaped.md',
       r'C:\outside\escaped.md',
-      'Workouts/record.md',
       'Activities/nested/record.md',
       'Activities/..',
       'Activities/record.txt',
@@ -111,6 +110,20 @@ void main() {
         reason: 'savePlan should reject $path',
       );
     }
+
+    // Each API must reject a path rooted in another data folder.
+    await expectLater(
+      vault.saveWorkout(workout, relativePath: 'Activities/record.md'),
+      throwsA(isA<FileSystemException>()),
+    );
+    await expectLater(
+      vault.saveActivity(activity, relativePath: 'Workouts/record.md'),
+      throwsA(isA<FileSystemException>()),
+    );
+    await expectLater(
+      vault.savePlan(plan, relativePath: 'Tracks/record.md'),
+      throwsA(isA<FileSystemException>()),
+    );
 
     await expectOutsideUnchanged();
   });
