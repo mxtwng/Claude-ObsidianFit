@@ -133,9 +133,11 @@ flutter analyze
 flutter test
 ```
 
-All of these are plain-Dart tests (GPX, round trip, re-indexer, plate math).
-The recording UI, BLE, background service and wake lock are not covered by
-them and need a real device.
+The suite includes pure-Dart/unit tests, persistence and round-trip tests, and
+Flutter widget tests for logger flows and timer boundaries. This still does
+not replace real-device validation: BLE, GPS/background lifecycle, platform
+permissions, notifications, and wake-lock behavior must be checked on target
+hardware.
 
 ### On a device (Android)
 
